@@ -15,6 +15,7 @@
         <maven.deploy.skip>false</maven.deploy.skip>
     </properties>
 
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

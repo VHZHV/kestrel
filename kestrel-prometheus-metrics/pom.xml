@@ -12,22 +12,22 @@
     <artifactId>kestrel-prometheus-metrics</artifactId>
 
     <dependencies>
-        <dependency>
+<!--        <dependency>-->
 
-            <groupId>${project.groupId}</groupId>
-            <artifactId>kestrel-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>kestrel-http-event-streams</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient</artifactId>
-            <version>0.1.0</version>
-        </dependency>
+<!--            <groupId>${project.groupId}</groupId>-->
+<!--            <artifactId>kestrel-core</artifactId>-->
+<!--            <version>${project.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>${project.groupId}</groupId>-->
+<!--            <artifactId>kestrel-http-event-streams</artifactId>-->
+<!--            <version>${project.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>io.prometheus</groupId>-->
+<!--            <artifactId>simpleclient</artifactId>-->
+<!--            <version>0.1.0</version>-->
+<!--        </dependency>-->
     </dependencies>
 
 </project>
