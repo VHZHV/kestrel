@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.dreweaster.ddd</groupId>
     <artifactId>kestrel</artifactId>
-    <version>0.1.11-parking-SNAPSHOT</version>
+    <version>0.1.11-parking-2-SNAPSHOT</version>
     <modules>
         <module>kestrel-core</module>
         <module>kestrel-example</module>
@@ -29,7 +29,8 @@
         <url>https://github.com/DrewEaster/kestrel</url>
         <connection>scm:git:git@github.com:DrewEaster/kestrel.git</connection>
         <developerConnection>scm:git:git@github.com:DrewEaster/kestrel.git</developerConnection>
-    </scm>
+      <tag>kestrel-0.1.11-parking-1</tag>
+  </scm>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -177,6 +178,23 @@
                     </args>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+            </plugin>
         </plugins>
+        <extensions>
+            <extension>
+                <groupId>com.gkatzioura.maven.cloud</groupId>
+                <artifactId>google-storage-wagon</artifactId>
+                <version>1.6</version>
+            </extension>
+        </extensions>
     </build>
+    <distributionManagement>
+        <repository>
+            <id>gcp-kestrel-releases</id>
+            <url>gs://hozah-kutils/maven2</url>
+        </repository>
+    </distributionManagement>
 </project>
