@@ -6,15 +6,19 @@ import com.github.andrewoma.kwery.core.dialect.Dialect
 import com.github.andrewoma.kwery.core.interceptor.LoggingInterceptor
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 import java.sql.Connection
 import javax.sql.DataSource
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.suspendCoroutine
 
 object TransactionRollbackException : RuntimeException()
 
 class Database(val name: String, val dataSource: DataSource, val poolSize: Int, val dialect: Dialect) {
+
+    val log = LoggerFactory.getLogger(Database::class.java)
 
     val context = newFixedThreadPoolContext(nThreads = poolSize, name = name) + DataSourceContext(dataSource)
 
@@ -27,7 +31,7 @@ class Database(val name: String, val dataSource: DataSource, val poolSize: Int, 
         }
     }
 
-    suspend fun currentTransaction(): Transaction? = coroutineContext()[TransactionContext]
+    suspend fun currentTransaction(): Transaction? = coroutineContext[TransactionContext]
 
     private suspend fun <T> newTransaction(block: suspend (Transaction) -> T): T = withContext(context) {
         val connection = context.dataSource.connection
@@ -53,7 +57,8 @@ class Database(val name: String, val dataSource: DataSource, val poolSize: Int, 
     }
 
     suspend fun <T> withConnection(block: suspend (Connection) -> T): T {
-        val connection = coroutineContext().connection
+        log.info("Creating connectIon")
+        val connection = coroutineContext.connection
         return if (connection == null) {
             withContext(context) {
                 val newConnection = context.dataSource.connection
@@ -77,7 +82,7 @@ interface Transaction {
     var rollbackOnly: Boolean
 }
 
-private suspend fun coroutineContext(): CoroutineContext = suspendCoroutine { it.context  }
+
 
 private class TransactionContext(val connection: Connection, override var rollbackOnly: Boolean = false) :
         AbstractCoroutineContextElement(TransactionContext), Transaction {
