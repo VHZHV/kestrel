@@ -57,9 +57,10 @@ class Database(val name: String, val dataSource: DataSource, val poolSize: Int, 
     }
 
     suspend fun <T> withConnection(block: suspend (Connection) -> T): T {
-        log.info("Creating connectIon")
+        log.debug("retreiving connection")
         val connection = coroutineContext.connection
         return if (connection == null) {
+            log.debug("getting connection from datasource")
             withContext(context) {
                 val newConnection = context.dataSource.connection
                 try {
