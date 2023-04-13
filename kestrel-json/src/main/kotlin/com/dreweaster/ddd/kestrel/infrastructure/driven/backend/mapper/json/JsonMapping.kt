@@ -137,7 +137,7 @@ class JsonEventPayloadMapper(
             }
 
             // Include the 'current' version deserialiser
-            deserialisers += (Pair(currentClassName!!, currentVersion) to { serialisedEvent ->
+            deserialisers += (Pair(currentClassName!!, currentVersion) to { serialisedEvent: String ->
                 val root = stringToJsonNode(serialisedEvent)
                 deserialiseFunction!!(root)
             })
