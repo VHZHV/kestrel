@@ -4,6 +4,7 @@ import com.dreweaster.ddd.kestrel.domain.Aggregate
 import com.dreweaster.ddd.kestrel.domain.DomainEvent
 import com.dreweaster.ddd.kestrel.domain.aggregates.user.*
 import com.dreweaster.ddd.kestrel.infrastructure.InMemoryBackend
+import io.kotlintest.matchers.beInstanceOf
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.WordSpec
@@ -114,7 +115,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(ChangePassword("changedPassword"))
 
                     // Then
-                    (result as RejectionResult).error shouldBe (UserIsLocked::class)
+                    (result as RejectionResult).error should beInstanceOf(UserIsLocked::class)
                 }
             }
 
@@ -128,7 +129,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(UnlockUser)
 
                     // Then
-                    (result as RejectionResult).error shouldBe (UnsupportedCommandInCurrentBehaviour::class)
+                    (result as RejectionResult).error  should beInstanceOf(UnsupportedCommandInCurrentBehaviour::class)
                 }
             }
 
@@ -149,7 +150,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(IncrementFailedLoginAttempts)
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex shouldBe (UnsupportedEventInCurrentBehaviour::class)
+                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(UnsupportedEventInCurrentBehaviour::class)
                 }
             }
 
@@ -163,7 +164,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex shouldBe (IllegalStateException::class)
+                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(IllegalStateException::class)
                 }
             }
 
@@ -177,7 +178,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    result shouldBe (ConcurrentModificationResult::class)
+                    result  should beInstanceOf(ConcurrentModificationResult::class)
                 }
             }
 
@@ -191,7 +192,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex shouldBe (IllegalStateException::class)
+                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(IllegalStateException::class)
                 }
             }
 
@@ -224,7 +225,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as RejectionResult).error shouldBe (AggregateInstanceAlreadyExists::class)
+                    (result as RejectionResult).error  should beInstanceOf(AggregateInstanceAlreadyExists::class)
                 }
             }
         }
