@@ -13,11 +13,11 @@ fun Application.module() {
 }
 
 fun main(args: Array<String>) {
-
     // Migrate DB
-    val flyway = Flyway()
-    flyway.setDataSource("jdbc:postgresql://example-db/postgres", "postgres", "password")
-    flyway.migrate()
+    Flyway.configure()
+        .dataSource("jdbc:postgresql://example-db/postgres", "postgres", "password")
+        .load()
+        .migrate()
 
     embeddedServer(Netty, commandLineEnvironment(args)).start()
 }

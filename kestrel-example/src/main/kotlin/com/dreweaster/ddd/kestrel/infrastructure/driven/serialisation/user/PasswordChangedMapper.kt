@@ -12,14 +12,14 @@ object PasswordChangedMapper : JsonEventMappingConfigurer<PasswordChanged> {
     val serialiser: (PasswordChanged) -> JsonObject = { event ->
         jsonObject(
             "old_password" to event.oldPassword,
-            "password" to event.password
+            "password" to event.password,
         )
     }
 
     val deserialiser: (JsonObject) -> PasswordChanged = { node ->
         PasswordChanged(
             oldPassword = node["old_password"].string,
-            password = node["password"].string
+            password = node["password"].string,
         )
     }
 

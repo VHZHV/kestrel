@@ -12,14 +12,14 @@ object UserRegisteredMapper : JsonEventMappingConfigurer<UserRegistered> {
     val serialiser: (UserRegistered) -> JsonObject = { event ->
         jsonObject(
             "username" to event.username,
-            "password" to event.password
+            "password" to event.password,
         )
     }
 
     val deserialiser: (JsonObject) -> UserRegistered = { node ->
         UserRegistered(
             username = node["username"].string,
-            password = node["password"].string
+            password = node["password"].string,
         )
     }
 

@@ -20,7 +20,8 @@ interface CommandDeduplicationStrategyFactory {
     fun newBuilder(): CommandDeduplicationStrategyBuilder
 }
 
-class TimeRestrictedCommandDeduplicationStrategy(private val causationIds: Set<CausationId>) : CommandDeduplicationStrategy {
+class TimeRestrictedCommandDeduplicationStrategy(private val causationIds: Set<CausationId>) :
+    CommandDeduplicationStrategy {
 
     override fun isDuplicate(commandId: CommandId): Boolean {
         return causationIds.contains(CausationId(commandId.value))

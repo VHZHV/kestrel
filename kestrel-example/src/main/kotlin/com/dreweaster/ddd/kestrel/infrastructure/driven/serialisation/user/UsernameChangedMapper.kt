@@ -11,13 +11,13 @@ object UsernameChangedMapper : JsonEventMappingConfigurer<UsernameChanged> {
 
     val serialiser: (UsernameChanged) -> JsonObject = { event ->
         jsonObject(
-            "username" to event.username
+            "username" to event.username,
         )
     }
 
     val deserialiser: (JsonObject) -> UsernameChanged = { node ->
         UsernameChanged(
-            username = node["username"].string
+            username = node["username"].string,
         )
     }
 

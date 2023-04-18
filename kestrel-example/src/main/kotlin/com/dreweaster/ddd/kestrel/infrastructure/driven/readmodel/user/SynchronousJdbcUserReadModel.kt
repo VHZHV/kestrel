@@ -2,13 +2,27 @@ package com.dreweaster.ddd.kestrel.infrastructure.driven.readmodel.user
 
 import com.dreweaster.ddd.kestrel.application.readmodel.user.UserDTO
 import com.dreweaster.ddd.kestrel.application.readmodel.user.UserReadModel
-import com.dreweaster.ddd.kestrel.domain.aggregates.user.*
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.PasswordChanged
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.User
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserEvent
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserLocked
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserRegistered
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserUnlocked
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UsernameChanged
 import com.dreweaster.ddd.kestrel.infrastructure.backend.jdbc.Database
 import com.dreweaster.ddd.kestrel.infrastructure.backend.jdbc.SynchronousJdbcReadModel
 import com.google.inject.Inject
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 
-class SynchronousJdbcUserReadModel @Inject() constructor(private val db: Database) : SynchronousJdbcReadModel(), UserReadModel {
+class SynchronousJdbcUserReadModel @Inject() constructor(private val db: Database) :
+    SynchronousJdbcReadModel(),
+    UserReadModel {
 
     object Users : Table("usr") {
         val id: Column<String> = varchar("id", 72)
@@ -19,7 +33,8 @@ class SynchronousJdbcUserReadModel @Inject() constructor(private val db: Databas
 
     override suspend fun findAllUsers(): List<UserDTO> = db.transaction { Users.selectAll().map(rowMapper) }
 
-    override suspend fun findUserById(id: String): UserDTO? = db.transaction { Users.select { Users.id.eq(id) }.map(rowMapper).firstOrNull() }
+    override suspend fun findUserById(id: String): UserDTO? =
+        db.transaction { Users.select { Users.id.eq(id) }.map(rowMapper).firstOrNull() }
 
     override val update = projection<User, UserEvent> {
 
@@ -54,6 +69,7 @@ class SynchronousJdbcUserReadModel @Inject() constructor(private val db: Databas
             id = row[Users.id],
             username = row[Users.username],
             password = row[Users.password],
-            locked = row[Users.locked])
+            locked = row[Users.locked],
+        )
     }
 }

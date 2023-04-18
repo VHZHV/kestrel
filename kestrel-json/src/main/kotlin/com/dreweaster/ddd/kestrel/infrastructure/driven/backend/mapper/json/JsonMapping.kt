@@ -16,7 +16,7 @@ interface JsonEventMappingConfiguration<E : DomainEvent> {
 
     fun migrateClassName(className: String): JsonEventMappingConfiguration<E>
 
-    fun mappingFunctions(serialiseFunction: ((E) ->  JsonObject), deserialiseFunction: ((JsonObject) -> E))
+    fun mappingFunctions(serialiseFunction: ((E) -> JsonObject), deserialiseFunction: ((JsonObject) -> E))
 }
 
 interface JsonEventMappingConfigurationFactory<E : DomainEvent> {
@@ -29,18 +29,20 @@ interface JsonEventMappingConfigurer<E : DomainEvent> {
     fun configure(configurationFactory: JsonEventMappingConfigurationFactory<E>)
 }
 
-class UnparseableJsonPayloadException(cause: Throwable, serialisedPayload: String) : MappingException("Could not parse JSON event payload: " + serialisedPayload, cause)
+class UnparseableJsonPayloadException(cause: Throwable, serialisedPayload: String) :
+    MappingException("Could not parse JSON event payload: $serialisedPayload", cause)
 
 class MissingDeserialiserException(serialisedEventType: String, serialisedEventVersion: Int) : MappingException(
-        "No deserialiser found for event_type = '$serialisedEventType' with event_version = '$serialisedEventVersion'")
+    "No deserialiser found for event_type = '$serialisedEventType' with event_version = '$serialisedEventVersion'",
+)
 
-class MissingSerialiserException(eventType: String) : MappingException("No serialiser found for event_type = '$eventType'")
+class MissingSerialiserException(eventType: String) :
+    MappingException("No serialiser found for event_type = '$eventType'")
 
 class JsonEventPayloadMapper(
-        private val gson: Gson,
-        private val eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>) : EventPayloadMapper {
-
-    private val jsonParser = JsonParser()
+    private val gson: Gson,
+    private val eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>,
+) : EventPayloadMapper {
 
     private var eventDeserialisers: Map<Pair<String, Int>, (String) -> DomainEvent> = emptyMap()
     private var eventSerialisers: Map<String, (DomainEvent) -> Pair<String, Int>> = emptyMap()
@@ -50,20 +52,29 @@ class JsonEventPayloadMapper(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <E : DomainEvent> deserialiseEvent(serialisedPayload: String, serialisedEventType: String, serialisedEventVersion: Int): E {
-        val deserialiser = eventDeserialisers[Pair(serialisedEventType, serialisedEventVersion)] ?: throw MissingDeserialiserException(serialisedEventType, serialisedEventVersion)
+    override fun <E : DomainEvent> deserialiseEvent(
+        serialisedPayload: String,
+        serialisedEventType: String,
+        serialisedEventVersion: Int,
+    ): E {
+        val deserialiser =
+            eventDeserialisers[Pair(serialisedEventType, serialisedEventVersion)] ?: throw MissingDeserialiserException(
+                serialisedEventType,
+                serialisedEventVersion,
+            )
         return deserialiser(serialisedPayload) as E
     }
 
     override fun <E : DomainEvent> serialiseEvent(event: E): PayloadSerialisationResult {
-        val serialiser = eventSerialisers[event::class.qualifiedName!!] ?: throw MissingSerialiserException(event::class.qualifiedName!!)
+        val serialiser = eventSerialisers[event::class.qualifiedName!!]
+            ?: throw MissingSerialiserException(event::class.qualifiedName!!)
 
         val versionedPayload = serialiser(event)
 
         return PayloadSerialisationResult(
-                versionedPayload.first,
-                SerialisationContentType.JSON,
-                versionedPayload.second
+            versionedPayload.first,
+            SerialisationContentType.JSON,
+            versionedPayload.second,
         )
     }
 
@@ -79,12 +90,16 @@ class JsonEventPayloadMapper(
             mappingConfiguration
         }
 
-        eventDeserialisers = mappingConfigurations.fold(eventDeserialisers) { acc, mappingConfiguration -> acc + mappingConfiguration.createDeserialisers() }
+        eventDeserialisers =
+            mappingConfigurations.fold(eventDeserialisers) { acc, mappingConfiguration -> acc + mappingConfiguration.createDeserialisers() }
 
-        eventSerialisers = mappingConfigurations.fold(eventSerialisers) { acc, mappingConfiguration -> acc + mappingConfiguration.createSerialiser() }
+        eventSerialisers =
+            mappingConfigurations.fold(eventSerialisers) { acc, mappingConfiguration -> acc + mappingConfiguration.createSerialiser() }
     }
 
-    inner class MappingConfiguration<E : DomainEvent> : JsonEventMappingConfigurationFactory<E>, JsonEventMappingConfiguration<E> {
+    inner class MappingConfiguration<E : DomainEvent> :
+        JsonEventMappingConfigurationFactory<E>,
+        JsonEventMappingConfiguration<E> {
 
         private var currentVersion: Int = 0
 
@@ -110,7 +125,10 @@ class JsonEventPayloadMapper(
             return this
         }
 
-        override fun mappingFunctions(serialiseFunction: ((E) -> JsonObject), deserialiseFunction: ((JsonObject) -> E)) {
+        override fun mappingFunctions(
+            serialiseFunction: ((E) -> JsonObject),
+            deserialiseFunction: ((JsonObject) -> E),
+        ) {
             this.serialiseFunction = serialiseFunction
             this.deserialiseFunction = deserialiseFunction
         }
@@ -130,24 +148,26 @@ class JsonEventPayloadMapper(
         }
 
         fun createDeserialisers(): Map<Pair<String, Int>, (String) -> DomainEvent> {
-            var deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent> = emptyMap()
+            var deserialisers: MutableMap<Pair<String, Int>, (String) -> DomainEvent> = mutableMapOf()
 
-            if (!migrations.isEmpty()) {
-                deserialisers = putDeserialisers(migrations, deserialisers)
+            if (migrations.isNotEmpty()) {
+                deserialisers = putDeserialisers(migrations, deserialisers).toMutableMap()
             }
 
             // Include the 'current' version deserialiser
-            deserialisers += (Pair(currentClassName!!, currentVersion) to { serialisedEvent: String ->
-                val root = stringToJsonNode(serialisedEvent)
-                deserialiseFunction!!(root)
-            })
+            deserialisers += (
+                Pair(currentClassName!!, currentVersion) to { serialisedEvent: String ->
+                    val root = stringToJsonNode(serialisedEvent)
+                    deserialiseFunction!!(root)
+                }
+                )
             return deserialisers
         }
 
         private fun putDeserialisers(
-                migrations: List<Migration>,
-                deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent>): Map<Pair<String, Int>, (String) -> DomainEvent> {
-
+            migrations: List<Migration>,
+            deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent>,
+        ): Map<Pair<String, Int>, (String) -> DomainEvent> {
             return if (migrations.isEmpty()) {
                 deserialisers
             } else {
@@ -156,16 +176,17 @@ class JsonEventPayloadMapper(
         }
 
         private fun putDeserialiser(
-                migrations: List<Migration>,
-                deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent>): Map<Pair<String, Int>, (String) -> DomainEvent> {
-
+            migrations: List<Migration>,
+            deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent>,
+        ): Map<Pair<String, Int>, (String) -> DomainEvent> {
             val migration = migrations.first()
             val className = migration.fromClassName
             val version = migration.fromVersion
             val migrationFunctions = migrations.map { it.migrationFunction }
-            val combinedMigrationFunction = migrationFunctions.drop(1).fold(migrationFunctions.first()) { combined, f -> f.compose(combined) }
+            val combinedMigrationFunction =
+                migrationFunctions.drop(1).fold(migrationFunctions.first()) { combined, f -> f.compose(combined) }
 
-            val deserialiser = { serialisedEvent:String ->
+            val deserialiser = { serialisedEvent: String ->
                 val root = stringToJsonNode(serialisedEvent)
                 val migratedRoot = combinedMigrationFunction(root)
                 deserialiseFunction!!(migratedRoot)
@@ -176,13 +197,13 @@ class JsonEventPayloadMapper(
 
         private fun stringToJsonNode(serialisedEvent: String): JsonObject {
             try {
-                return jsonParser.parse(serialisedEvent).asJsonObject
+                return JsonParser.parseString(serialisedEvent).asJsonObject
             } catch (ex: IOException) {
                 throw UnparseableJsonPayloadException(ex, serialisedEvent)
             }
         }
 
-        infix fun <IP, R, P1> ((IP) -> R).compose(f: (P1) -> IP): (P1) -> R {
+        private infix fun <IP, R, P1> ((IP) -> R).compose(f: (P1) -> IP): (P1) -> R {
             return { p1: P1 -> this(f(p1)) }
         }
     }
@@ -196,19 +217,21 @@ class JsonEventPayloadMapper(
     }
 
     data class FormatMigration(
-             private val className: String,
-             override val fromVersion: Int,
-             override val toVersion: Int,
-             override val migrationFunction: (JsonObject) -> JsonObject) : Migration {
+        private val className: String,
+        override val fromVersion: Int,
+        override val toVersion: Int,
+        override val migrationFunction: (JsonObject) -> JsonObject,
+    ) : Migration {
 
         override val fromClassName = className
         override val toClassName = className
     }
 
     class ClassNameMigration(
-            override val fromClassName: String,
-            override val toClassName: String,
-            override val fromVersion: Int,
-            override val toVersion: Int,
-            override val migrationFunction: (JsonObject) -> JsonObject =  { jsonNode -> jsonNode }) : Migration
+        override val fromClassName: String,
+        override val toClassName: String,
+        override val fromVersion: Int,
+        override val toVersion: Int,
+        override val migrationFunction: (JsonObject) -> JsonObject = { jsonNode -> jsonNode },
+    ) : Migration
 }

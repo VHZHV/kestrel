@@ -2,7 +2,16 @@ package com.dreweaster.ddd.kestrel.application
 
 import com.dreweaster.ddd.kestrel.domain.Aggregate
 import com.dreweaster.ddd.kestrel.domain.DomainEvent
-import com.dreweaster.ddd.kestrel.domain.aggregates.user.*
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.ChangePassword
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.FailedLoginAttemptsIncremented
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.IncrementFailedLoginAttempts
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.PasswordChanged
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.RegisterUser
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UnlockUser
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.User
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserIsLocked
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserLocked
+import com.dreweaster.ddd.kestrel.domain.aggregates.user.UserRegistered
 import com.dreweaster.ddd.kestrel.infrastructure.InMemoryBackend
 import io.kotlintest.matchers.beInstanceOf
 import io.kotlintest.matchers.should
@@ -56,7 +65,10 @@ class EventsourcedDomainModelTests : WordSpec() {
 
                     // Then
                     (result as SuccessResult).generatedEvents.size shouldBe 1
-                    result.generatedEvents[0] shouldBe PasswordChanged(oldPassword = "password", password = "changedPassword")
+                    result.generatedEvents[0] shouldBe PasswordChanged(
+                        oldPassword = "password",
+                        password = "changedPassword",
+                    )
                     result.deduplicated shouldBe false
                 }
             }
@@ -89,11 +101,21 @@ class EventsourcedDomainModelTests : WordSpec() {
                     user.handleCommand(IncrementFailedLoginAttempts)
                     user.handleCommand(IncrementFailedLoginAttempts)
                     user.handleCommand(IncrementFailedLoginAttempts)
-                    val firstResult = user.handleCommandEnvelope(CommandEnvelope(IncrementFailedLoginAttempts, CommandId("command-id-5")))
+                    val firstResult = user.handleCommandEnvelope(
+                        CommandEnvelope(
+                            IncrementFailedLoginAttempts,
+                            CommandId("command-id-5"),
+                        ),
+                    )
                     val eventsGeneratedWhenCommandFirstHandled = (firstResult as SuccessResult).generatedEvents
 
                     // When
-                    val result = user.handleCommandEnvelope(CommandEnvelope(IncrementFailedLoginAttempts, CommandId("command-id-5")))
+                    val result = user.handleCommandEnvelope(
+                        CommandEnvelope(
+                            IncrementFailedLoginAttempts,
+                            CommandId("command-id-5"),
+                        ),
+                    )
 
                     // Then
                     (result as SuccessResult).generatedEvents shouldBe eventsGeneratedWhenCommandFirstHandled
@@ -129,10 +151,9 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(UnlockUser)
 
                     // Then
-                    (result as RejectionResult).error  should beInstanceOf(UnsupportedCommandInCurrentBehaviour::class)
+                    (result as RejectionResult).error should beInstanceOf(UnsupportedCommandInCurrentBehaviour::class)
                 }
             }
-
 
             // TODO: needs a more descriptive exception type
             "generate an error when handling a command for which there is no corresponding event supported in its current behaviour" {
@@ -150,7 +171,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(IncrementFailedLoginAttempts)
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(UnsupportedEventInCurrentBehaviour::class)
+                    (result as UnexpectedExceptionResult).ex should beInstanceOf(UnsupportedEventInCurrentBehaviour::class)
                 }
             }
 
@@ -164,7 +185,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(IllegalStateException::class)
+                    (result as UnexpectedExceptionResult).ex should beInstanceOf(IllegalStateException::class)
                 }
             }
 
@@ -178,7 +199,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    result  should beInstanceOf(ConcurrentModificationResult::class)
+                    result should beInstanceOf(ConcurrentModificationResult::class)
                 }
             }
 
@@ -192,7 +213,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as UnexpectedExceptionResult).ex  should beInstanceOf(IllegalStateException::class)
+                    (result as UnexpectedExceptionResult).ex should beInstanceOf(IllegalStateException::class)
                 }
             }
 
@@ -204,12 +225,25 @@ class EventsourcedDomainModelTests : WordSpec() {
                     user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // When
-                    user.handleCommandEnvelope(CommandEnvelope(ChangePassword("changedPassword"), CommandId("some-command-id")))
-                    val result = user.handleCommandEnvelope(CommandEnvelope(ChangePassword("anotherChangedPassword"), CommandId("some-command-id")))
+                    user.handleCommandEnvelope(
+                        CommandEnvelope(
+                            ChangePassword("changedPassword"),
+                            CommandId("some-command-id"),
+                        ),
+                    )
+                    val result = user.handleCommandEnvelope(
+                        CommandEnvelope(
+                            ChangePassword("anotherChangedPassword"),
+                            CommandId("some-command-id"),
+                        ),
+                    )
 
                     // Then
                     (result as SuccessResult).generatedEvents.size shouldBe 1
-                    result.generatedEvents[0] shouldBe PasswordChanged(oldPassword = "changedPassword", password = "anotherChangedPassword")
+                    result.generatedEvents[0] shouldBe PasswordChanged(
+                        oldPassword = "changedPassword",
+                        password = "anotherChangedPassword",
+                    )
                     result.deduplicated shouldBe false
                 }
             }
@@ -225,7 +259,7 @@ class EventsourcedDomainModelTests : WordSpec() {
                     val result = user.handleCommand(RegisterUser(username = "joebloggs", password = "password"))
 
                     // Then
-                    (result as RejectionResult).error  should beInstanceOf(AggregateInstanceAlreadyExists::class)
+                    (result as RejectionResult).error should beInstanceOf(AggregateInstanceAlreadyExists::class)
                 }
             }
         }
@@ -293,18 +327,35 @@ class MockBackend : InMemoryBackend() {
         saveErrorState = false
     }
 
-    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(aggregateType: A, aggregateId: AggregateId): List<PersistedEvent<E>> {
+    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+    ): List<PersistedEvent<E>> {
         if (loadErrorState) {
             throw IllegalStateException()
         }
         return super.loadEvents(aggregateType, aggregateId)
     }
 
-    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> saveEvents(aggregateType: A, aggregateId: AggregateId, causationId: CausationId, rawEvents: List<E>, expectedSequenceNumber: Long, correlationId: CorrelationId?): List<PersistedEvent<E>> {
+    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> saveEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+        causationId: CausationId,
+        rawEvents: List<E>,
+        expectedSequenceNumber: Long,
+        correlationId: CorrelationId?,
+    ): List<PersistedEvent<E>> {
         return when {
             optimisticConcurrencyExceptionOnSave -> throw OptimisticConcurrencyException
             saveErrorState -> throw IllegalStateException()
-            else -> super.saveEvents(aggregateType, aggregateId, causationId, rawEvents, expectedSequenceNumber, correlationId)
+            else -> super.saveEvents(
+                aggregateType,
+                aggregateId,
+                causationId,
+                rawEvents,
+                expectedSequenceNumber,
+                correlationId,
+            )
         }
     }
 }
