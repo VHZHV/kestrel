@@ -23,11 +23,11 @@ import kotlinx.coroutines.runBlocking
 // TODO: Determine if current approach to not supporting eden commands and events outside of edenBehaviour is actually correct feature
 class EventsourcedDomainModelTests : WordSpec() {
 
-    val backend = MockBackend()
+    private val backend = MockBackend()
 
-    val deduplicationStrategyFactory = SwitchableDeduplicationStrategyFactory()
+    private val deduplicationStrategyFactory = SwitchableDeduplicationStrategyFactory()
 
-    val domainModel = EventSourcedDomainModel(backend, deduplicationStrategyFactory)
+    private val domainModel = EventSourcedDomainModel(backend, deduplicationStrategyFactory)
 
     override val oneInstancePerTest = true
 
@@ -301,7 +301,7 @@ class MockBackend : InMemoryBackend() {
 
     private var saveErrorState = false
 
-    var optimisticConcurrencyExceptionOnSave = false
+    private var optimisticConcurrencyExceptionOnSave = false
 
     fun toggleOnOptimisticConcurrencyExceptionOnSave() {
         optimisticConcurrencyExceptionOnSave = true

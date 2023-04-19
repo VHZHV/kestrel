@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 class HelloNewUser @Inject constructor(boundedContexts: BoundedContextEventStreamSources) :
     StatelessEventConsumer(boundedContexts) {
 
-    private val LOG = LoggerFactory.getLogger(HelloNewUser::class.java)
+    private val logger = LoggerFactory.getLogger(HelloNewUser::class.java)
 
     init {
         consumer {
@@ -21,7 +21,7 @@ class HelloNewUser @Inject constructor(boundedContexts: BoundedContextEventStrea
             subscribe(context = UserContext, subscriptionName = "hello-new-user", edenPolicy = FROM_NOW) {
 
                 event<UserRegistered> { event, _ ->
-                    LOG.info("Hello ${event.username}!")
+                    logger.info("Hello ${event.username}!")
                 }
             }
         }.start()

@@ -29,7 +29,7 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
 
     class EventMappers {
 
-        val mappersList: MutableList<HttpJsonEventMapper<*>> = mutableListOf()
+        private val mappersList: MutableList<HttpJsonEventMapper<*>> = mutableListOf()
 
         fun tag(tagName: String, init: Tag.() -> Unit): Tag {
             val tag = Tag(DomainEventTag(tagName), mappersList)

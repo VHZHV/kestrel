@@ -9,7 +9,7 @@ import com.google.gson.JsonObject
 
 object UserRegisteredMapper : JsonEventMappingConfigurer<UserRegistered> {
 
-    val serialiser: (UserRegistered) -> JsonObject = { event ->
+    private val serialiser: (UserRegistered) -> JsonObject = { event ->
         jsonObject(
             "username" to event.username,
             "password" to event.password,

@@ -48,9 +48,9 @@ class EventSourcedDomainModel(
                     else -> handleCommand(aggregate, commandEnvelope)
                 }
             } catch (ocex: OptimisticConcurrencyException) {
-                ConcurrentModificationResult<E>()
+                ConcurrentModificationResult()
             } catch (ex: Throwable) {
-                UnexpectedExceptionResult<E>(ex)
+                UnexpectedExceptionResult(ex)
             }
 
             reportingContext.finishedHandling(result)

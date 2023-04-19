@@ -41,7 +41,7 @@ class MissingSerialiserException(eventType: String) :
 
 class JsonEventPayloadMapper(
     private val gson: Gson,
-    private val eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>,
+    eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>,
 ) : EventPayloadMapper {
 
     private var eventDeserialisers: Map<Pair<String, Int>, (String) -> DomainEvent> = emptyMap()

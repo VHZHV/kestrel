@@ -52,9 +52,8 @@ class UserRoutes @Inject constructor(
                 post {
                     val request = RegisterUserRequest(call.receiveJson())
                     val user = domainModel.aggregateRootOf(User, request.id)
-                    val result = RegisterUser(request.username, request.password) sendTo user
 
-                    when (result) {
+                    when (RegisterUser(request.username, request.password) sendTo user) {
                         is SuccessResult -> call.respondWithJson(jsonObject("id" to request.id.value))
                         else -> call.respond(HttpStatusCode.InternalServerError)
                     }
@@ -76,7 +75,7 @@ class UserRoutes @Inject constructor(
         }
     }
 
-    fun userToJsonObject(user: UserDTO) =
+    private fun userToJsonObject(user: UserDTO) =
         jsonObject(
             "id" to user.id,
             "username" to user.username,

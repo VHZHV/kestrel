@@ -71,13 +71,13 @@ class BoundedContextHttpEventStreamSource(
     private val jobManager: JobManager,
 ) : BoundedContextEventStreamSource {
 
-    private val LOG = LoggerFactory.getLogger(BoundedContextHttpEventStreamSource::class.java)
+    private val logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSource::class.java)
 
     private val targetClassToEventTag: Map<KClass<out DomainEvent>, DomainEventTag> =
-        eventMappers.map { it.targetEventClass to it.sourceEventTag }.toMap()
+        eventMappers.associate { it.targetEventClass to it.sourceEventTag }
 
     private val sourceEventTypeToMapper: Map<FullyQualifiedClassName, (JsonObject) -> DomainEvent> =
-        eventMappers.map { it.sourceEventType to { jsonObject: JsonObject -> it.map(jsonObject) } }.toMap()
+        eventMappers.associate { it.sourceEventType to { jsonObject: JsonObject -> it.map(jsonObject) } }
 
     private var reporters: List<BoundedContextHttpEventStreamSourceReporter> = emptyList()
 
@@ -108,7 +108,7 @@ class BoundedContextHttpEventStreamSource(
         if (configuration.enabled(subscriberConfiguration.name)) {
             jobManager.scheduleManyTimes(configuration.repeatScheduleFor(subscriberConfiguration.name), job)
         } else {
-            LOG.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")
+            logger.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")
         }
     }
 

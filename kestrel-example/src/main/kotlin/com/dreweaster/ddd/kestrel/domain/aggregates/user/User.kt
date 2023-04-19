@@ -1,8 +1,6 @@
 package com.dreweaster.ddd.kestrel.domain.aggregates.user
 
 import com.dreweaster.ddd.kestrel.domain.Aggregate
-import com.sun.xml.internal.ws.api.client.ServiceInterceptor.aggregate
-import java.lang.Compiler.command
 
 object User : Aggregate<UserCommand, UserEvent, UserState> {
 

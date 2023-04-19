@@ -129,11 +129,11 @@ class EdenReceive<C : DomainCommand, E : DomainEvent> {
     }
 
     fun <Evt : E> accept(vararg event: Evt): Try<List<Evt>> {
-        return Try.success<List<Evt>>(event.toList())
+        return Try.success(event.toList())
     }
 
     fun <Evt : E> reject(error: Throwable): Try<List<Evt>> {
-        return Try.failure<List<Evt>>(error)
+        return Try.failure(error)
     }
 }
 
@@ -178,11 +178,11 @@ class Receive<C : DomainCommand, E : DomainEvent, S : AggregateState, out State 
     }
 
     fun accept(vararg event: E): Try<List<E>> {
-        return Try.success<List<E>>(event.toList())
+        return Try.success(event.toList())
     }
 
     fun reject(error: Throwable): Try<List<E>> {
-        return Try.failure<List<E>>(error)
+        return Try.failure(error)
     }
 }
 

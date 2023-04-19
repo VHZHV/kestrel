@@ -90,13 +90,13 @@ import java.time.Instant
 // Other events will continue to queue up behind the unhandlable one. It must be possible to continue processing after fixing the problem
 // This is a natural part of the design.
 //
-// It's up tp system implementors to decide when it's appropriate to clean up old event managers - i.e. they can look for states they know are finished/done states
+// It's up to system implementors to decide when it's appropriate to clean up old event managers - i.e. they can look for states they know are finished/done states
 //
 // For Events being emitted:
 
 // Sets correlation id as the id of this event manager
 // By default sets, the event id as event id of the processed event + type of emitted event (default 1:1 mapping between incoming event and outgoing event type)
-// Don't try to send same event type multiple times as part of same incoming event
+// Don't try to send the same event type multiple times as part of the same incoming event
 //
 // For commands being sent:
 //
@@ -105,7 +105,7 @@ import java.time.Instant
 // Need to decide how to handle commands. Should enter failure state if
 //
 // When a PM enters its endsWith state, the min_sequence_number is set to the last_processed_sequence_number + 1 - this essentially resets
-// the PM back to eden state so that it will always start from min_sequence_number in the future rather than right from beginning of time.
+// the PM back to eden state so that it will always start from min_sequence_number in the future rather than right from the beginning of time.
 // This is to deal with what can technically be indefinite running processes where a particular correlation id may continue to be used
 // in the future. It's an optimisation that means the same correlation id can be reused without having to deal with historical uses of
 // the same ID. A PM that has last_processed_sequence_number < min_sequence_num can technically be cleaned up as long as you're sure there won't be
@@ -119,13 +119,13 @@ import java.time.Instant
 // Need deterministic ids for event scheduling.
 // Commands will need some way to ensure deterministic ids - use incoming event id and command type?
 //
-// Need to introduce some kind of actor model design to restrict likelihood of trying to event a scheduled event at the same type as an external event.
+// We Need to introduce some kind of actor model design to restrict the likelihood of trying to event a scheduled event at the same type as an external event.
 // Although the philosophy of Kestrel is to expect at-least-once-delivery, it's still preferable to avoid unnecessarily causing duplicate deliveries.
 //
 // Scheduler needs to support the concept of acknowledgement in order to guarantee at-least-once-delivery of scheduled events.
-// Need to guarantee that scheduled events will definitely be written to a event manager's event log at-least-once (with dedupe handled by event id during actual processing)
+// We Need to guarantee that scheduled events will definitely be written to a event manager's event log at-least-once (with dedupe handled by event id during actual processing)
 //
-// Processing of a event manager should also happen within the single-threaded environment of an actor. With bounded mailbox if too many attempts to concurrently
+// Processing of an event manager should also happen within the single-threaded environment of an actor. With bounded mailbox if too many attempts to concurrently
 // trigger processing occur.
 //
 // If you schedule event at
@@ -408,7 +408,7 @@ interface ProcessManagerEventScheduler {
 
     interface ProcessManagerScheduledEventNotification<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> {
         val event: ProcessManagerScheduledEvent<C, E, S>
-        fun ack() // It's necessary for a listener to call ack() to confirm event has been handled. Otherwise scheduler should resend
+        fun ack() // It's necessary for a listener to call ack() to confirm event has been handled. Otherwise, scheduler should resend
     }
 
     interface Listener<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> {

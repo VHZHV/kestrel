@@ -162,7 +162,7 @@ class PostgresBackend(
     }
 
     override suspend fun findIdsForProcessManagersAwaitingProcessing(pageable: Pageable): Page<ProcessManagerCorrelationId> {
-        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented")
     }
 
     // TODO: Will need to implement snapshot retrieval
@@ -495,7 +495,7 @@ class PostgresBackend(
                 expectedSequenceNumber = expectedSequenceNumber,
             )
         } catch (ex: Throwable) {
-            return Try.failure<List<PersistedEvent<E>>>(ex)
+            return Try.failure(ex)
         }
         return Try.success(persistedEvents)
     }
@@ -526,7 +526,7 @@ class PostgresBackend(
     }
 
     private fun <E : DomainEvent> rowToStreamEvent(row: ResultRow): StreamEvent {
-        // Need to load then re-serialise event to ensure format is migrated if necessary
+        // Need to load then re-serialise event to ensure the format is migrated if necessary
         val rawEvent = mapper.deserialiseEvent<E>(
             row[DomainEvents.payload],
             row[DomainEvents.type],
