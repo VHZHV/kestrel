@@ -11,9 +11,7 @@ import com.github.salomonbrys.kotson.jsonObject
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
-class BoundedContextHttpJsonEventStreamProducer(val backend: Backend) {
-
-    private val jsonParser = JsonParser()
+class BoundedContextHttpJsonEventStreamProducer(private val backend: Backend) {
 
     suspend fun produceFrom(urlQueryParameters: Map<String, List<String>>): JsonObject {
         return convertStreamToJsonResponse(fetchEventStream(HttpJsonEventQuery.from(urlQueryParameters)))
@@ -57,6 +55,6 @@ class BoundedContextHttpJsonEventStreamProducer(val backend: Backend) {
             "tag" to event.eventTag.value,
             "timestamp" to TimeUtils.instantToUTCString(event.timestamp),
             "sequence_number" to event.sequenceNumber,
-            "payload" to jsonParser.parse(event.serialisedPayload),
+            "payload" to JsonParser.parseString(event.serialisedPayload),
         )
 }

@@ -26,6 +26,7 @@
 
         <kotlin.version>1.7.22</kotlin.version>
         <exposed.version>0.41.1</exposed.version>
+        <netty.version>4.1.91.Final</netty.version>
 
         <bintray.subject>dreweaster</bintray.subject>
         <bintray.repo>projects</bintray.repo>
@@ -88,6 +89,30 @@
                 <groupId>com.github.salomonbrys.kotson</groupId>
                 <artifactId>kotson</artifactId>
                 <version>2.5.0</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>2.10.1</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/junit/junit -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.13.2</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/io.netty/netty-codec -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/io.netty/netty-common -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-common</artifactId>
+                <version>${netty.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

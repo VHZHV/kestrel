@@ -107,7 +107,7 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
 
 object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
 
-    class ConsoleProbe(private val subscriberName: String) : BoundedContextHttpEventStreamSourceProbe {
+    class ConsoleProbe : BoundedContextHttpEventStreamSourceProbe {
 
         override fun startedConsuming() {
         }
@@ -156,6 +156,6 @@ object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
     }
 
     override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe {
-        return ConsoleProbe(subscriberName)
+        return ConsoleProbe()
     }
 }

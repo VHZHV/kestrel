@@ -16,6 +16,13 @@
         <main.class>com.dreweaster.ddd.kestrel.ExampleApplicationKt</main.class>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>ktor-eap</id>
+            <url>https://maven.pkg.jetbrains.space/public/p/ktor/eap/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -115,10 +122,38 @@
             <artifactId>guice-multibindings</artifactId>
             <version>4.2.3</version>
         </dependency>
+
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-utils-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-utils-jvm</artifactId>
+            <version>1.6.8-eap-339</version>
+        </dependency>
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/io.netty/netty-codec -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+        </dependency>
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/io.netty/netty-common -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/io.kotlintest/kotlintest -->
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -31,7 +31,6 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10.1</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.kotlintest/kotlintest -->
@@ -46,10 +45,20 @@
             <artifactId>kotson</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Security -->
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>30.0-jre</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
