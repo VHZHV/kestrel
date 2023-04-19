@@ -129,8 +129,6 @@ class BoundedContextHttpEventStreamSource(
                 batchSize = configuration.batchSizeFor(subscriberConfiguration.name),
             )
 
-        private val jsonParser = JsonParser()
-
         override suspend fun execute() {
             probe.startedConsuming()
             try {
@@ -194,7 +192,7 @@ class BoundedContextHttpEventStreamSource(
             val request = requestFactory.createRequest(lastProcessedOffset)
             return try {
                 val response = httpClient.execute(request)
-                val jsonBody = jsonParser.parse(response.responseBody)
+                val jsonBody = JsonParser.parseString(response.responseBody)
                 val maxOffset = jsonBody["max_offset"].asLong
                 probe.finishedFetchingEventStream(maxOffset)
                 jsonBody["events"].asJsonArray.toList().map { it.asJsonObject }
