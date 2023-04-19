@@ -12,17 +12,29 @@
     <artifactId>kestrel-example</artifactId>
 
     <properties>
-        <ktor.version>1.6.8</ktor.version>
         <main.class>com.dreweaster.ddd.kestrel.ExampleApplicationKt</main.class>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>ktor-eap</id>
-            <url>https://maven.pkg.jetbrains.space/public/p/ktor/eap/</url>
-        </repository>
-    </repositories>
-
+    <dependencyManagement>
+        <dependencies>
+            <!-- https://mvnrepository.com/artifact/io.ktor/ktor-bom -->
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-bom</artifactId>
+                <version>1.6.8</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/com.google.inject/guice-bom -->
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice-bom</artifactId>
+                <version>5.1.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -64,7 +76,6 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core -->
         <dependency>
@@ -90,13 +101,11 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-core</artifactId>
-            <version>${ktor.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/io.ktor/ktor-server-netty -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-netty</artifactId>
-            <version>${ktor.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
         <dependency>
@@ -122,38 +131,16 @@
             <artifactId>guice-multibindings</artifactId>
             <version>4.2.3</version>
         </dependency>
-
-        <!-- Security -->
-        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-utils-jvm -->
+        <!-- https://mvnrepository.com/artifact/org.asynchttpclient/async-http-client -->
         <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-utils-jvm</artifactId>
-            <version>1.6.8-eap-339</version>
-        </dependency>
-        <!-- Security -->
-        <!-- https://mvnrepository.com/artifact/io.netty/netty-codec -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-codec</artifactId>
-        </dependency>
-        <!-- Security -->
-        <!-- https://mvnrepository.com/artifact/io.netty/netty-common -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-common</artifactId>
+            <groupId>org.asynchttpclient</groupId>
+            <artifactId>async-http-client</artifactId>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.kotlintest/kotlintest -->
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- Security -->
-        <!-- https://mvnrepository.com/artifact/junit/junit -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

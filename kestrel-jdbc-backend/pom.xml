@@ -38,9 +38,12 @@
         <dependency>
             <groupId>org.jetbrains.exposed</groupId>
             <artifactId>exposed-jodatime</artifactId>
-            <version>${exposed.version}</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/io.vavr/vavr-kotlin -->
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr-kotlin</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

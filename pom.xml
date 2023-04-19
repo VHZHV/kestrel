@@ -25,8 +25,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <kotlin.version>1.7.22</kotlin.version>
-        <exposed.version>0.41.1</exposed.version>
-        <netty.version>4.1.91.Final</netty.version>
 
         <bintray.subject>dreweaster</bintray.subject>
         <bintray.repo>projects</bintray.repo>
@@ -48,23 +46,53 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-bom -->
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-bom -->
+            <dependency>
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>kotlinx-coroutines-bom</artifactId>
+                <version>1.6.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-bom -->
+            <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-bom</artifactId>
+                <version>0.41.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.asynchttpclient/async-http-client-bom -->
+            <dependency>
+                <groupId>org.asynchttpclient</groupId>
+                <artifactId>async-http-client-bom</artifactId>
+                <version>2.12.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Security -->
+            <!-- https://mvnrepository.com/artifact/io.netty/netty-bom -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.1.91.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>2.0.7</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-stdlib</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core -->
-            <dependency>
-                <groupId>org.jetbrains.kotlinx</groupId>
-                <artifactId>kotlinx-coroutines-core</artifactId>
-                <version>1.6.4</version>
             </dependency>
             <!-- https://mvnrepository.com/artifact/io.vavr/vavr-kotlin -->
             <dependency>
@@ -78,11 +106,11 @@
                 <artifactId>kotlintest</artifactId>
                 <version>2.0.7</version>
             </dependency>
-            <!-- https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core -->
+            <!-- https://mvnrepository.com/artifact/junit/junit -->
             <dependency>
-                <groupId>org.jetbrains.exposed</groupId>
-                <artifactId>exposed-core</artifactId>
-                <version>${exposed.version}</version>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.13.2</version>
             </dependency>
             <!-- https://mvnrepository.com/artifact/com.github.salomonbrys.kotson/kotson -->
             <dependency>
@@ -95,24 +123,6 @@
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
                 <version>2.10.1</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/junit/junit -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.13.2</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/io.netty/netty-codec -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec</artifactId>
-                <version>${netty.version}</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/io.netty/netty-common -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-common</artifactId>
-                <version>${netty.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -149,7 +159,7 @@
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-maven-plugin</artifactId>
-                    <version>1.7.22</version>
+                    <version>${kotlin.version}</version>
                     <configuration>
                         <jvmTarget>1.8</jvmTarget>
                     </configuration>
