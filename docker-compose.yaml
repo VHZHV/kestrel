@@ -14,7 +14,7 @@ services:
     stdin_open: true
     tty: true
   example-db:
-    image: postgres:9.6-alpine
+    image: postgres:15-alpine
     restart: always
     ports:
       - "5432:5432"
