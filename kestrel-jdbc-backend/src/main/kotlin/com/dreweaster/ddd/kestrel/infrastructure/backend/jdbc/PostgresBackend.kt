@@ -102,18 +102,6 @@ class PostgresBackend(
         val processingLastAttemptedAt = instant("processing_last_attempted_at").nullable()
     }
 
-    object ProcessManagerFailures : Table("process_manager_failure") {
-        val id = long("failure_id").autoIncrement()
-        val processManagerCorrelationId = varchar("process_manager_correlation_id", 144)
-        val sequenceNumber = long("sequence_number")
-        val failureCode = varchar("failure_code", 36)
-        val stackTrace = text("stack_trace").nullable()
-        val message = text("message").nullable()
-        val failureTimestamp = instant("failure_timestamp")
-
-        override val primaryKey = PrimaryKey(id)
-    }
-
     override suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> persistProcessManagerEvent(
         eventId: EventId,
         rawEvent: E,
@@ -245,9 +233,12 @@ class PostgresBackend(
                     when (val result = processHandler(processManager.first)) {
                         is Continue -> {
                             val rowsAffected =
-                                ProcessManagers.upsert(ProcessManagers.primaryKeyConstraintConflictTarget(), {
-                                    ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
-                                }) {
+                                ProcessManagers.upsert(
+                                    ProcessManagers.primaryKeyConstraintConflictTarget(),
+                                    {
+                                        ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
+                                    },
+                                ) {
                                     it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
                                     it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
                                     it[lastProcessedSequenceNumber] =
@@ -266,9 +257,12 @@ class PostgresBackend(
 
                         is Finished -> {
                             val rowsAffected =
-                                ProcessManagers.upsert(ProcessManagers.primaryKeyConstraintConflictTarget(), {
-                                    ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
-                                }) {
+                                ProcessManagers.upsert(
+                                    ProcessManagers.primaryKeyConstraintConflictTarget(),
+                                    {
+                                        ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
+                                    },
+                                ) {
                                     it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
                                     it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
                                     it[lastProcessedSequenceNumber] =

@@ -289,8 +289,7 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
                                     vehicle = state.vehicle,
                                     completedBatchId = completedBatchId,
                                     completedBatch = state.buffer.sessions,
-                                    futureBuffer =
-                                    ParkingSessionBuffer.startNew(
+                                    futureBuffer = ParkingSessionBuffer.startNew(
                                         carPark = cxt.carPark,
                                         parkingSession = QueuedParkingSession(
                                             startedAt = evt.startedAt,
@@ -356,7 +355,6 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
 
 class ProcessManagerEntryPoint<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(
     private val processManagerType: ProcessManager<C, E, S>,
-    private val processManagerId: String,
     private val commandDispatcher: CommandDispatcher,
     private val eventScheduler: EventScheduler,
 ) {
@@ -448,7 +446,6 @@ interface DomainModel {
 fun main() {
     fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> processManagerOf(
         processManagerType: ProcessManager<C, E, S>,
-        processManagerId: String,
     ): ProcessManagerEntryPoint<C, E, S> {
         val domainModel = EventSourcedDomainModel(InMemoryBackend(), TwentyFourHourWindowCommandDeduplication)
         val commandDispatcher = object : CommandDispatcher {
@@ -473,9 +470,9 @@ fun main() {
         val eventScheduler = object : EventScheduler {
             override suspend fun <Evt : E, E : DomainEvent> schedule(event: Evt, at: Instant) = Try.success(Unit)
         }
-        return ProcessManagerEntryPoint(processManagerType, processManagerId, commandDispatcher, eventScheduler)
+        return ProcessManagerEntryPoint(processManagerType, commandDispatcher, eventScheduler)
     }
 
-    val pm = processManagerOf(BatchSessions, "")
+    val pm = processManagerOf(BatchSessions)
     runBlocking { pm.process() }
 }

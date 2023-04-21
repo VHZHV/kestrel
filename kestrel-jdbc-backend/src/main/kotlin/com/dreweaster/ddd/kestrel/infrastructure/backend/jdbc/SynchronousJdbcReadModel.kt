@@ -30,7 +30,7 @@ abstract class SynchronousJdbcReadModel {
 
     infix fun Int.eq(number: Int) {
         if (this != number) {
-            throw UnexpectedNumberOfRowsAffectedInUpdate(number, this)
+            throw UnexpectedNumberOfRowsAffectedInUpdate()
         }
     }
 }

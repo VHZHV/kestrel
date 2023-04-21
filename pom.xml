@@ -38,13 +38,6 @@
         <developerConnection>scm:git:git@github.com:DrewEaster/kestrel.git</developerConnection>
     </scm>
 
-    <repositories>
-        <repository>
-            <id>hozah-permitutils</id>
-            <url>https://storage.googleapis.com/hozah-permitutils/maven2/</url>
-        </repository>
-    </repositories>
-
     <dependencyManagement>
         <dependencies>
             <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-bom -->
@@ -170,6 +163,15 @@
                     <configuration>
                         <jvmTarget>1.8</jvmTarget>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>compile</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-source-plugin -->
                 <plugin>
@@ -182,6 +184,21 @@
                             <phase>verify</phase>
                             <goals>
                                 <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <!-- https://mvnrepository.com/artifact/com.github.gantsign.maven/ktlint-maven-plugin -->
+                <plugin>
+                    <groupId>com.github.gantsign.maven</groupId>
+                    <artifactId>ktlint-maven-plugin</artifactId>
+                    <version>1.16.0</version>
+                    <executions>
+                        <execution>
+                            <id>format-and-check</id>
+                            <goals>
+                                <goal>format</goal>
+                                <goal>check</goal>
                             </goals>
                         </execution>
                     </executions>

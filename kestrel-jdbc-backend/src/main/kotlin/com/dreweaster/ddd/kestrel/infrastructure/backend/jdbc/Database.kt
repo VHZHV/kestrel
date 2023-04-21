@@ -28,20 +28,22 @@ class Database(dataSource: DataSource, private val context: CoroutineDispatcher)
     suspend fun <T> transaction(block: (DatabaseTransaction) -> T): T =
         withContext(context) {
             transaction(db) {
-                block(object : DatabaseTransaction {
-                    override fun rollback() {
-                        throw DatabaseTransaction.TransactionRollbackException
-                    }
+                block(
+                    object : DatabaseTransaction {
+                        override fun rollback() {
+                            throw DatabaseTransaction.TransactionRollbackException
+                        }
 
-                    override fun rollback(throwable: Throwable) {
-                        throw throwable
-                    }
-                })
+                        override fun rollback(throwable: Throwable) {
+                            throw throwable
+                        }
+                    },
+                )
             }
         }
 }
 
-class UnexpectedNumberOfRowsAffectedInUpdate(val actual: Int, val expected: Int) : RuntimeException()
+class UnexpectedNumberOfRowsAffectedInUpdate : RuntimeException()
 
 interface DatabaseTransaction {
 

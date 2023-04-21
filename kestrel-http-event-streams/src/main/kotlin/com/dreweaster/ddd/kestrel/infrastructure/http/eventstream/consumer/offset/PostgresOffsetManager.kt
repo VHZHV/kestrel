@@ -31,7 +31,7 @@ class PostgresOffsetManager(private val database: Database) : OffsetManager {
                 it[name] = offsetKey
                 it[lastProcessedOffset] = offset
             }
-            if (rowsAffected != 1) tx.rollback(UnexpectedNumberOfRowsAffectedInUpdate(rowsAffected, 1))
+            if (rowsAffected != 1) tx.rollback(UnexpectedNumberOfRowsAffectedInUpdate())
         }
     }
 }

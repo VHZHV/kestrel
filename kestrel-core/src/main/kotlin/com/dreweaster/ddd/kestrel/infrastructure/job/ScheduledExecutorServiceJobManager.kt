@@ -22,18 +22,23 @@ class ScheduledExecutorServiceJobManager(
         // It's okay to block waiting for a future result as we're using a dedicated job execution context
         // It's important that we wait for a job to complete execution
         // so that it's not rescheduled if the previous invocation hasn't yet completed
-        scheduler.scheduleAtFixedRate({
-            try {
-                runBlocking {
-                    // TODO: Make timeout configurable - defaulting to 10x the repeat schedule
-                    withTimeout(repeatSchedule.toMillis() * 10) {
-                        ClusterSingletonJobWrapper(job).execute()
+        scheduler.scheduleAtFixedRate(
+            {
+                try {
+                    runBlocking {
+                        // TODO: Make timeout configurable - defaulting to 10x the repeat schedule
+                        withTimeout(repeatSchedule.toMillis() * 10) {
+                            ClusterSingletonJobWrapper(job).execute()
+                        }
                     }
+                } catch (ex: Exception) {
+                    logger.error("Job execution failed: '${job.name}'", ex)
                 }
-            } catch (ex: Exception) {
-                logger.error("Job execution failed: '${job.name}'", ex)
-            }
-        }, repeatSchedule.toMillis(), repeatSchedule.toMillis(), TimeUnit.MILLISECONDS)
+            },
+            repeatSchedule.toMillis(),
+            repeatSchedule.toMillis(),
+            TimeUnit.MILLISECONDS,
+        )
     }
 
     inner class ClusterSingletonJobWrapper(private val wrappedJob: Job) : Job {
