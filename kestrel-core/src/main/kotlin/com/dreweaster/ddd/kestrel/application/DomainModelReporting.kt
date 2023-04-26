@@ -7,13 +7,15 @@ import com.dreweaster.ddd.kestrel.domain.DomainEvent
 
 interface DomainModelReporter {
 
-    fun <C : DomainCommand, E : DomainEvent, S: AggregateState> supports(aggregateType: Aggregate<C,E,S>): Boolean
+    fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>): Boolean
 
-    fun <C : DomainCommand, E : DomainEvent, S: AggregateState> createProbe(
-            aggregateType: Aggregate<C,E,S>, aggregateId: AggregateId): CommandHandlingProbe<C, E, S>
+    fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(
+        aggregateType: Aggregate<C, E, S>,
+        aggregateId: AggregateId,
+    ): CommandHandlingProbe<C, E, S>
 }
 
-interface CommandHandlingProbe<C : DomainCommand, E : DomainEvent, S: AggregateState> {
+interface CommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState> {
 
     fun startedHandling(command: CommandEnvelope<C>)
 
@@ -40,12 +42,14 @@ interface CommandHandlingProbe<C : DomainCommand, E : DomainEvent, S: AggregateS
     fun finishedHandling(result: CommandHandlingResult<E>)
 }
 
-class ReportingContext<C : DomainCommand, E : DomainEvent, S: AggregateState>(
-        aggregateType: Aggregate<C, E, S>,
-        aggregateId: AggregateId,
-        reporters: List<DomainModelReporter>) : CommandHandlingProbe<C, E, S> {
+class ReportingContext<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+    aggregateType: Aggregate<C, E, S>,
+    aggregateId: AggregateId,
+    reporters: List<DomainModelReporter>,
+) : CommandHandlingProbe<C, E, S> {
 
-    private val probes: List<CommandHandlingProbe<C, E, S>> = reporters.filter { it.supports(aggregateType) }.map { it.createProbe(aggregateType, aggregateId) }
+    private val probes: List<CommandHandlingProbe<C, E, S>> =
+        reporters.filter { it.supports(aggregateType) }.map { it.createProbe(aggregateType, aggregateId) }
 
     override fun startedHandling(command: CommandEnvelope<C>) {
         probes.forEach { it.startedHandling(command) }
@@ -98,7 +102,7 @@ class ReportingContext<C : DomainCommand, E : DomainEvent, S: AggregateState>(
 
 object ConsoleReporter : DomainModelReporter {
 
-    class ConsoleProbe<C : DomainCommand, E : DomainEvent, S : AggregateState> : CommandHandlingProbe<C,E,S> {
+    class ConsoleProbe<C : DomainCommand, E : DomainEvent, S : AggregateState> : CommandHandlingProbe<C, E, S> {
 
         override fun startedHandling(command: CommandEnvelope<C>) {
             println("Started handling: $command")
@@ -149,7 +153,11 @@ object ConsoleReporter : DomainModelReporter {
         }
     }
 
-    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) = true
+    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) =
+        true
 
-    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(aggregateType: Aggregate<C, E, S>, aggregateId: AggregateId) = ConsoleProbe<C,E,S>()
+    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(
+        aggregateType: Aggregate<C, E, S>,
+        aggregateId: AggregateId,
+    ) = ConsoleProbe<C, E, S>()
 }

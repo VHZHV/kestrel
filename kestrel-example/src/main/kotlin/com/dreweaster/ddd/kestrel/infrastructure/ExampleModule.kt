@@ -1,6 +1,10 @@
 package com.dreweaster.ddd.kestrel.infrastructure
 
-import com.dreweaster.ddd.kestrel.application.*
+import com.dreweaster.ddd.kestrel.application.Backend
+import com.dreweaster.ddd.kestrel.application.ConsoleReporter
+import com.dreweaster.ddd.kestrel.application.DomainModel
+import com.dreweaster.ddd.kestrel.application.EventSourcedDomainModel
+import com.dreweaster.ddd.kestrel.application.TwentyFourHourWindowCommandDeduplication
 import com.dreweaster.ddd.kestrel.application.consumers.HelloNewUser
 import com.dreweaster.ddd.kestrel.application.eventstream.BoundedContextEventStreamSources
 import com.dreweaster.ddd.kestrel.application.eventstream.BoundedContextName
@@ -15,14 +19,17 @@ import com.dreweaster.ddd.kestrel.infrastructure.cluster.LocalClusterManager
 import com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.JsonEventMappingConfigurer
 import com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.JsonEventPayloadMapper
 import com.dreweaster.ddd.kestrel.infrastructure.driven.readmodel.user.SynchronousJdbcUserReadModel
-import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.*
+import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.FailedLoginAttemptsIncrementedMapper
+import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.PasswordChangedMapper
+import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.UserLockedMapper
+import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.UserRegisteredMapper
+import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.UsernameChangedMapper
 import com.dreweaster.ddd.kestrel.infrastructure.driving.eventstream.UserContextHttpEventStreamSourceFactory
 import com.dreweaster.ddd.kestrel.infrastructure.driving.http.routes.user.UserRoutes
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.BoundedContextHttpEventStreamSourceConfiguration
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.OffsetManager
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.PostgresOffsetManager
 import com.dreweaster.ddd.kestrel.infrastructure.job.ScheduledExecutorServiceJobManager
-import com.github.andrewoma.kwery.core.dialect.PostgresDialect
 import com.google.gson.Gson
 import com.google.inject.AbstractModule
 import com.google.inject.Binder
@@ -41,7 +48,9 @@ import java.util.concurrent.Executors
 class ExampleModule(val application: Application) : AbstractModule() {
 
     inner class SynchronousJdbcReadModelBinder(val binder: Binder) {
-        val readModelsBinder = Multibinder.newSetBinder(binder(), SynchronousJdbcReadModel::class.java)
+        val readModelsBinder: Multibinder<SynchronousJdbcReadModel> =
+            Multibinder.newSetBinder(binder(), SynchronousJdbcReadModel::class.java)
+
         inline fun <reified R : SynchronousJdbcReadModel> bind(): Class<R> {
             readModelsBinder.addBinding().to(R::class.java)
             binder.bind(R::class.java).`in`(Singleton::class.java)
@@ -75,7 +84,7 @@ class ExampleModule(val application: Application) : AbstractModule() {
     fun jobManager(clusterManager: ClusterManager): JobManager {
         return ScheduledExecutorServiceJobManager(
             clusterManager = clusterManager,
-            scheduler = Executors.newSingleThreadScheduledExecutor()
+            scheduler = Executors.newSingleThreadScheduledExecutor(),
         )
     }
 
@@ -95,24 +104,31 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
     @Singleton
     @Provides
-    fun boundedContextEventStreamSources(jobManager: JobManager, offsetManager: OffsetManager, config: ApplicationConfig): BoundedContextEventStreamSources {
+    fun boundedContextEventStreamSources(
+        jobManager: JobManager,
+        offsetManager: OffsetManager,
+        config: ApplicationConfig,
+    ): BoundedContextEventStreamSources {
         val asyncHttpClient = DefaultAsyncHttpClient()
         val streamSourceFactories = listOf(UserContextHttpEventStreamSourceFactory)
-        return BoundedContextEventStreamSources(streamSourceFactories.map {
-            it.name to it.createHttpEventStreamSource(
-                httpClient = asyncHttpClient,
-                configuration = createHttpEventStreamSourceConfiguration(it.name, config),
-                jobManager = jobManager,
-                offsetManager = offsetManager)
+        return BoundedContextEventStreamSources(
+            streamSourceFactories.map {
+                it.name to it.createHttpEventStreamSource(
+                    httpClient = asyncHttpClient,
+                    configuration = createHttpEventStreamSourceConfiguration(it.name, config),
+                    jobManager = jobManager,
+                    offsetManager = offsetManager,
+                )
                     .addReporter(com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.reporting.ConsoleReporter)
-        })
+            },
+        )
     }
 
     @Singleton
     @Provides
     fun provideDatabase(): Database {
         val config = HikariConfig()
-        config.jdbcUrl ="jdbc:postgresql://example-db/postgres"
+        config.jdbcUrl = "jdbc:postgresql://example-db/postgres"
         config.username = "postgres"
         config.password = "password"
         config.addDataSourceProperty("cachePrepStmts", "true")
@@ -121,28 +137,34 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
         val ds = HikariDataSource(config)
 
-        return Database("dbPool", ds, Dispatchers.IO)
+        return Database(ds, Dispatchers.IO)
     }
 
     @Singleton
     @Provides
     fun provideBackend(
-            database: Database,
-            synchronousJdbcReadModels: java.util.Set<SynchronousJdbcReadModel>): Backend {
-
-        val payloadMapper = JsonEventPayloadMapper(Gson(), listOf(
-            UserRegisteredMapper,
-            UsernameChangedMapper,
-            PasswordChangedMapper,
-            FailedLoginAttemptsIncrementedMapper,
-            UserLockedMapper
-        ) as List<JsonEventMappingConfigurer<DomainEvent>>)
+        database: Database,
+        synchronousJdbcReadModels: Set<SynchronousJdbcReadModel>,
+    ): Backend {
+        @Suppress("UNCHECKED_CAST")
+        val payloadMapper = JsonEventPayloadMapper(
+            Gson(),
+            listOf(
+                UserRegisteredMapper,
+                UsernameChangedMapper,
+                PasswordChangedMapper,
+                FailedLoginAttemptsIncrementedMapper,
+                UserLockedMapper,
+            ) as List<JsonEventMappingConfigurer<DomainEvent>>,
+        )
 
         return PostgresBackend(database, payloadMapper, synchronousJdbcReadModels.toList())
     }
 
-    private fun createHttpEventStreamSourceConfiguration(context: BoundedContextName, config: ApplicationConfig): BoundedContextHttpEventStreamSourceConfiguration {
-
+    private fun createHttpEventStreamSourceConfiguration(
+        context: BoundedContextName,
+        config: ApplicationConfig,
+    ): BoundedContextHttpEventStreamSourceConfiguration {
         return object : BoundedContextHttpEventStreamSourceConfiguration {
 
             override val producerEndpointProtocol = config.property("contexts.${context.name}.protocol").getString()
@@ -153,11 +175,18 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
             override val producerEndpointPath = config.property("contexts.${context.name}.path").getString()
 
-            override fun batchSizeFor(subscriptionName: String) = config.property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size").getString().toInt()
+            override fun batchSizeFor(subscriptionName: String) =
+                config.property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size").getString()
+                    .toInt()
 
-            override fun repeatScheduleFor(subscriptionName: String) = Duration.ofMillis(config.property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule").getString().toLong())
+            override fun repeatScheduleFor(subscriptionName: String) = Duration.ofMillis(
+                config.property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule").getString()
+                    .toLong(),
+            )
 
-            override fun enabled(subscriptionName: String) = config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()?.toBoolean() ?: true
+            override fun enabled(subscriptionName: String) =
+                config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
+                    ?.toBoolean() ?: true
         }
     }
 }

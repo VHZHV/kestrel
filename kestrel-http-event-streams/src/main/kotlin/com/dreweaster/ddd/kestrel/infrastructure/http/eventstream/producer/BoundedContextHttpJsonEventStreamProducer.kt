@@ -11,25 +11,25 @@ import com.github.salomonbrys.kotson.jsonObject
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
-class BoundedContextHttpJsonEventStreamProducer(val backend: Backend) {
-
-    private val jsonParser = JsonParser()
+class BoundedContextHttpJsonEventStreamProducer(private val backend: Backend) {
 
     suspend fun produceFrom(urlQueryParameters: Map<String, List<String>>): JsonObject {
         return convertStreamToJsonResponse(fetchEventStream(HttpJsonEventQuery.from(urlQueryParameters)))
     }
 
     private suspend fun fetchEventStream(query: HttpJsonEventQuery): EventStream {
-        return if(query.afterTimestamp != null) {
+        return if (query.afterTimestamp != null) {
             backend.loadEventStream<DomainEvent>(
-                    query.tags,
-                    query.afterTimestamp,
-                    query.batchSize)
+                query.tags,
+                query.afterTimestamp,
+                query.batchSize,
+            )
         } else {
             backend.loadEventStream<DomainEvent>(
-                    query.tags,
-                    query.afterOffset ?: -1L,
-                    query.batchSize)
+                query.tags,
+                query.afterOffset ?: -1L,
+                query.batchSize,
+            )
         }
     }
 
@@ -40,7 +40,7 @@ class BoundedContextHttpJsonEventStreamProducer(val backend: Backend) {
             "start_offset" to stream.startOffset,
             "end_offset" to stream.endOffset,
             "max_offset" to stream.maxOffset,
-            "events" to jsonArray(stream.events.map { streamEventToJsonEvent(it) })
+            "events" to jsonArray(stream.events.map { streamEventToJsonEvent(it) }),
         )
 
     private fun streamEventToJsonEvent(event: StreamEvent) =
@@ -55,6 +55,6 @@ class BoundedContextHttpJsonEventStreamProducer(val backend: Backend) {
             "tag" to event.eventTag.value,
             "timestamp" to TimeUtils.instantToUTCString(event.timestamp),
             "sequence_number" to event.sequenceNumber,
-            "payload" to jsonParser.parse(event.serialisedPayload)
+            "payload" to JsonParser.parseString(event.serialisedPayload),
         )
 }

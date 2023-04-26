@@ -9,11 +9,11 @@ interface OffsetManager {
 
 object InMemoryOffsetManager : OffsetManager {
 
-    private var offsetsMap: Map<String,Long> = emptyMap()
+    private var offsetsMap: Map<String, Long> = emptyMap()
 
-    suspend override fun getOffset(offsetKey: String) = offsetsMap[offsetKey]
+    override suspend fun getOffset(offsetKey: String) = offsetsMap[offsetKey]
 
-    suspend override fun saveOffset(offsetKey: String, offset: Long) {
+    override suspend fun saveOffset(offsetKey: String, offset: Long) {
         offsetsMap += offsetKey to offset
     }
 }

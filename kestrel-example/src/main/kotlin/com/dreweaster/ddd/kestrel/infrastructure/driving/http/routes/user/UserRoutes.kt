@@ -1,6 +1,10 @@
 package com.dreweaster.ddd.kestrel.infrastructure.driving.http.routes.user
 
-import com.dreweaster.ddd.kestrel.application.*
+import com.dreweaster.ddd.kestrel.application.AggregateId
+import com.dreweaster.ddd.kestrel.application.Backend
+import com.dreweaster.ddd.kestrel.application.DomainModel
+import com.dreweaster.ddd.kestrel.application.IdGenerator
+import com.dreweaster.ddd.kestrel.application.SuccessResult
 import com.dreweaster.ddd.kestrel.application.readmodel.user.UserDTO
 import com.dreweaster.ddd.kestrel.application.readmodel.user.UserReadModel
 import com.dreweaster.ddd.kestrel.domain.aggregates.user.RegisterUser
@@ -11,13 +15,22 @@ import com.github.salomonbrys.kotson.jsonObject
 import com.github.salomonbrys.kotson.string
 import com.google.gson.JsonObject
 import com.google.inject.Inject
-import io.ktor.application.*
+import io.ktor.application.Application
+import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
-import io.ktor.response.*
-import io.ktor.routing.*
+import io.ktor.response.respond
+import io.ktor.routing.get
+import io.ktor.routing.post
+import io.ktor.routing.route
+import io.ktor.routing.routing
 import io.ktor.util.toMap
 
-class UserRoutes @Inject constructor(application:Application, domainModel: DomainModel, userReadModel: UserReadModel, backend: Backend): BaseRoutes() {
+class UserRoutes @Inject constructor(
+    application: Application,
+    domainModel: DomainModel,
+    userReadModel: UserReadModel,
+    backend: Backend,
+) : BaseRoutes() {
 
     init {
         application.routing {
@@ -39,9 +52,8 @@ class UserRoutes @Inject constructor(application:Application, domainModel: Domai
                 post {
                     val request = RegisterUserRequest(call.receiveJson())
                     val user = domainModel.aggregateRootOf(User, request.id)
-                    val result = RegisterUser(request.username, request.password) sendTo user
 
-                    when(result) {
+                    when (RegisterUser(request.username, request.password) sendTo user) {
                         is SuccessResult -> call.respondWithJson(jsonObject("id" to request.id.value))
                         else -> call.respond(HttpStatusCode.InternalServerError)
                     }
@@ -50,19 +62,25 @@ class UserRoutes @Inject constructor(application:Application, domainModel: Domai
                 route("{id}") {
                     get {
                         val user = userReadModel.findUserById(call.parameters["id"]!!)
-                        if (user == null) call.respond(HttpStatusCode.NotFound) else call.respondWithJson(userToJsonObject(user))
+                        if (user == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                        } else {
+                            call.respondWithJson(
+                                userToJsonObject(user),
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    fun userToJsonObject(user: UserDTO) =
+    private fun userToJsonObject(user: UserDTO) =
         jsonObject(
             "id" to user.id,
             "username" to user.username,
             "password" to user.password,
-            "locked" to user.locked
+            "locked" to user.locked,
         )
 }
 

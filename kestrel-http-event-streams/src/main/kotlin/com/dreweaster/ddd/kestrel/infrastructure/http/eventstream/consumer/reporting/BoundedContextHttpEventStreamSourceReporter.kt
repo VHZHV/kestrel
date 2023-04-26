@@ -38,9 +38,11 @@ interface BoundedContextHttpEventStreamSourceProbe {
     fun finishedHandlingEvent(ex: Throwable)
 }
 
-class ReportingContext(subscriptionName: String, reporters: List<BoundedContextHttpEventStreamSourceReporter>) : BoundedContextHttpEventStreamSourceProbe {
+class ReportingContext(subscriptionName: String, reporters: List<BoundedContextHttpEventStreamSourceReporter>) :
+    BoundedContextHttpEventStreamSourceProbe {
 
-    private val probes: List<BoundedContextHttpEventStreamSourceProbe> = reporters.map { it.createProbe(subscriptionName) }
+    private val probes: List<BoundedContextHttpEventStreamSourceProbe> =
+        reporters.map { it.createProbe(subscriptionName) }
 
     override fun startedConsuming() {
         probes.forEach { it.startedConsuming() }
@@ -59,7 +61,7 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
     }
 
     override fun finishedFetchingEventStream(maxOffset: Long) {
-        probes.forEach { it.finishedFetchingEventStream(maxOffset)  }
+        probes.forEach { it.finishedFetchingEventStream(maxOffset) }
     }
 
     override fun finishedFetchingEventStream(ex: Throwable) {
@@ -105,70 +107,55 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
 
 object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
 
-    class ConsoleProbe(private val subscriberName: String) : BoundedContextHttpEventStreamSourceProbe {
+    class ConsoleProbe : BoundedContextHttpEventStreamSourceProbe {
 
         override fun startedConsuming() {
-
         }
 
         override fun finishedConsuming() {
-
         }
 
         override fun finishedConsuming(ex: Throwable) {
-
         }
 
         override fun startedFetchingEventStream() {
-
         }
 
         override fun finishedFetchingEventStream(maxOffset: Long) {
-
         }
 
         override fun finishedFetchingEventStream(ex: Throwable) {
-
         }
 
         override fun startedFetchingOffset() {
-
         }
 
         override fun finishedFetchingOffset() {
-
         }
 
         override fun finishedFetchingOffset(ex: Throwable) {
-
         }
 
         override fun startedSavingOffset() {
-
         }
 
         override fun finishedSavingOffset(offset: Long) {
-
         }
 
         override fun finishedSavingOffset(ex: Throwable) {
-
         }
 
         override fun startedHandlingEvent(eventType: String) {
-
         }
 
         override fun finishedHandlingEvent() {
-
         }
 
         override fun finishedHandlingEvent(ex: Throwable) {
-
         }
     }
 
     override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe {
-        return ConsoleProbe(subscriberName)
+        return ConsoleProbe()
     }
 }

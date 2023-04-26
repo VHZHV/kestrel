@@ -13,23 +13,23 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
     protected abstract val mappers: EventMappers
 
     fun createHttpEventStreamSource(
-            httpClient: AsyncHttpClient,
-            configuration: BoundedContextHttpEventStreamSourceConfiguration,
-            offsetManager: OffsetManager,
-            jobManager: JobManager): BoundedContextHttpEventStreamSource {
-
+        httpClient: AsyncHttpClient,
+        configuration: BoundedContextHttpEventStreamSourceConfiguration,
+        offsetManager: OffsetManager,
+        jobManager: JobManager,
+    ): BoundedContextHttpEventStreamSource {
         return BoundedContextHttpEventStreamSource(
-                httpClient = httpClient,
-                configuration = configuration,
-                jobManager = jobManager,
-                offsetManager = offsetManager,
-                eventMappers = mappers.build()
+            httpClient = httpClient,
+            configuration = configuration,
+            jobManager = jobManager,
+            offsetManager = offsetManager,
+            eventMappers = mappers.build(),
         )
     }
 
     class EventMappers {
 
-        val mappersList: MutableList<HttpJsonEventMapper<*>> = mutableListOf()
+        private val mappersList: MutableList<HttpJsonEventMapper<*>> = mutableListOf()
 
         fun tag(tagName: String, init: Tag.() -> Unit): Tag {
             val tag = Tag(DomainEventTag(tagName), mappersList)
@@ -41,13 +41,15 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
     }
 
     class Tag(val tag: DomainEventTag, val mappersList: MutableList<HttpJsonEventMapper<*>>) {
-        inline fun <reified E: DomainEvent> event(sourceEventType: String, noinline handler: (JsonObject) -> E) {
-            mappersList.add(HttpJsonEventMapper(
-                sourceEventType = sourceEventType,
-                sourceEventTag = tag,
-                targetEventClass = E::class,
-                map = handler
-            ))
+        inline fun <reified E : DomainEvent> event(sourceEventType: String, noinline handler: (JsonObject) -> E) {
+            mappersList.add(
+                HttpJsonEventMapper(
+                    sourceEventType = sourceEventType,
+                    sourceEventTag = tag,
+                    targetEventClass = E::class,
+                    map = handler,
+                ),
+            )
         }
     }
 

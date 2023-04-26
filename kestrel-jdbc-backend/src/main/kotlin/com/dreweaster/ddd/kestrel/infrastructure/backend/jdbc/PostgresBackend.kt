@@ -1,6 +1,27 @@
 package com.dreweaster.ddd.kestrel.infrastructure.backend.jdbc
 
-import com.dreweaster.ddd.kestrel.application.*
+import com.dreweaster.ddd.kestrel.application.AggregateId
+import com.dreweaster.ddd.kestrel.application.AlreadyProcessed
+import com.dreweaster.ddd.kestrel.application.Backend
+import com.dreweaster.ddd.kestrel.application.CausationId
+import com.dreweaster.ddd.kestrel.application.Continue
+import com.dreweaster.ddd.kestrel.application.CorrelationId
+import com.dreweaster.ddd.kestrel.application.EventId
+import com.dreweaster.ddd.kestrel.application.EventPayloadMapper
+import com.dreweaster.ddd.kestrel.application.EventStream
+import com.dreweaster.ddd.kestrel.application.Failed
+import com.dreweaster.ddd.kestrel.application.Finished
+import com.dreweaster.ddd.kestrel.application.GeneratedEvents
+import com.dreweaster.ddd.kestrel.application.NothingToProcess
+import com.dreweaster.ddd.kestrel.application.OptimisticConcurrencyException
+import com.dreweaster.ddd.kestrel.application.PayloadSerialisationResult
+import com.dreweaster.ddd.kestrel.application.PersistedAggregate
+import com.dreweaster.ddd.kestrel.application.PersistedEvent
+import com.dreweaster.ddd.kestrel.application.PersistedProcessManager
+import com.dreweaster.ddd.kestrel.application.ProcessManagerCorrelationId
+import com.dreweaster.ddd.kestrel.application.ProcessManagerProcessingResult
+import com.dreweaster.ddd.kestrel.application.ProcessManagerRetryStrategy
+import com.dreweaster.ddd.kestrel.application.StreamEvent
 import com.dreweaster.ddd.kestrel.application.pagination.Page
 import com.dreweaster.ddd.kestrel.application.pagination.Pageable
 import com.dreweaster.ddd.kestrel.domain.Aggregate
@@ -8,17 +29,23 @@ import com.dreweaster.ddd.kestrel.domain.DomainEvent
 import com.dreweaster.ddd.kestrel.domain.DomainEventTag
 import com.dreweaster.ddd.kestrel.domain.ProcessManager
 import io.vavr.control.Try
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.batchInsert
+import org.jetbrains.exposed.sql.max
+import org.jetbrains.exposed.sql.select
 import java.time.Instant
 import kotlin.reflect.KClass
 
 class PostgresBackend(
-        private val db: Database,
-        private val mapper: EventPayloadMapper,
-        private val readModels: List<SynchronousJdbcReadModel>) : Backend {
+    private val db: Database,
+    private val mapper: EventPayloadMapper,
+    private val readModels: List<SynchronousJdbcReadModel>,
+) : Backend {
 
     object DomainEvents : Table("domain_event") {
-        val globalOffset  = long("global_offset").primaryKey().autoIncrement()
+        val globalOffset = long("global_offset").autoIncrement()
         val id = varchar("event_id", 144)
         val aggregateId = varchar("aggregate_id", 144)
         val aggregateType = varchar("aggregate_type", 144)
@@ -30,17 +57,21 @@ class PostgresBackend(
         val payload = text("event_payload")
         val timestamp = instant("event_timestamp")
         val sequenceNumber = long("sequence_number")
+
+        override val primaryKey = PrimaryKey(globalOffset)
     }
 
     object AggregateRoots : Table("aggregate_root") {
-        val id = varchar("aggregate_id", 144).primaryKey(0)
-        val type = varchar("aggregate_type", 255).primaryKey(1)
+        val id = varchar("aggregate_id", 144)
+        val type = varchar("aggregate_type", 255)
         val version = long("aggregate_version")
         val primaryKeyConstraintConflictTarget = primaryKeyConstraintConflictTarget(id, type)
+
+        override val primaryKey = PrimaryKey(id, type)
     }
 
-    object ProcessManagerDomainEvents: Table("process_manager_domain_events") {
-        val globalOffset  = long("global_offset").primaryKey().autoIncrement()
+    object ProcessManagerDomainEvents : Table("process_manager_domain_events") {
+        private val globalOffset = long("global_offset").autoIncrement()
         val id = varchar("event_id", 144)
         val processManagerCorrelationId = varchar("process_manager_correlation_id", 144)
         val processManagerType = varchar("process_manager_type", 144)
@@ -50,10 +81,13 @@ class PostgresBackend(
         val payload = text("event_payload")
         val timestamp = instant("event_timestamp")
         val sequenceNumber = long("sequence_number")
-        val uniqueEventForProcessManagerInstanceConflictTarget = uniqueIndexConflictTarget("event_id_unique_index", id, processManagerCorrelationId)
+        val uniqueEventForProcessManagerInstanceConflictTarget =
+            uniqueIndexConflictTarget("event_id_unique_index", id, processManagerCorrelationId)
+
+        override val primaryKey = PrimaryKey(globalOffset)
     }
 
-    object ProcessManagers: Table("process_manager") {
+    object ProcessManagers : Table("process_manager") {
         val id = varchar("process_manager_correlation_id", 144)
         val type = varchar("process_manager_type", 144)
         val primaryKeyConstraintConflictTarget = primaryKeyConstraintConflictTarget(id, type)
@@ -68,23 +102,13 @@ class PostgresBackend(
         val processingLastAttemptedAt = instant("processing_last_attempted_at").nullable()
     }
 
-    object ProcessManagerFailures: Table("process_manager_failure") {
-        val id = long("failure_id").primaryKey().autoIncrement()
-        val processManagerCorrelationId = varchar("process_manager_correlation_id", 144)
-        val sequenceNumber = long("sequence_number")
-        val failureCode = varchar("failure_code", 36)
-        val stackTrace = text("stack_trace").nullable()
-        val message = text("message").nullable()
-        val failureTimestamp = instant("failure_timestamp")
-    }
-
     override suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> persistProcessManagerEvent(
-            eventId: EventId,
-            rawEvent: E,
-            processManagerType: P,
-            processManagerCorrelationId: ProcessManagerCorrelationId,
-            causationId: CausationId) {
-
+        eventId: EventId,
+        rawEvent: E,
+        processManagerType: P,
+        processManagerCorrelationId: ProcessManagerCorrelationId,
+        causationId: CausationId,
+    ) {
         val expectedMaxSequenceNumber = db.transaction {
             ProcessManagers.slice(ProcessManagers.id).select {
                 ProcessManagers.id eq processManagerCorrelationId.value
@@ -96,21 +120,25 @@ class PostgresBackend(
 
         db.transaction { _ ->
 
-            val insertEventRowsAffected = ProcessManagerDomainEvents.insertOnConflictDoNothing(ProcessManagerDomainEvents.uniqueEventForProcessManagerInstanceConflictTarget) {
-                it[ProcessManagerDomainEvents.id] = eventId.value
-                it[ProcessManagerDomainEvents.processManagerCorrelationId] = processManagerCorrelationId.value
-                it[ProcessManagerDomainEvents.processManagerType] = processManagerType.blueprint.name
-                it[ProcessManagerDomainEvents.tag] = rawEvent.tag.value
-                it[ProcessManagerDomainEvents.type] = rawEvent::class.qualifiedName!!
-                it[ProcessManagerDomainEvents.version] = serialisationResult.version
-                it[ProcessManagerDomainEvents.payload] = serialisationResult.payload
-                it[ProcessManagerDomainEvents.timestamp] = Instant.now()
-                it[ProcessManagerDomainEvents.sequenceNumber] = nextSequenceNumber
-            }
+            val insertEventRowsAffected =
+                ProcessManagerDomainEvents.insertOnConflictDoNothing(ProcessManagerDomainEvents.uniqueEventForProcessManagerInstanceConflictTarget) {
+                    it[id] = eventId.value
+                    it[ProcessManagerDomainEvents.processManagerCorrelationId] = processManagerCorrelationId.value
+                    it[ProcessManagerDomainEvents.processManagerType] = processManagerType.blueprint.name
+                    it[tag] = rawEvent.tag.value
+                    it[type] = rawEvent::class.qualifiedName!!
+                    it[version] = serialisationResult.version
+                    it[payload] = serialisationResult.payload
+                    it[timestamp] = Instant.now()
+                    it[sequenceNumber] = nextSequenceNumber
+                }
 
             // If the event id already exists for the given process manager id (i.e. no rows inserted) then we skip updating the process manager state
-            if(insertEventRowsAffected != 0) {
-                val setProcessManagerStateRowsAffected = ProcessManagers.upsert(ProcessManagers.primaryKeyConstraintConflictTarget, { ProcessManagers.maxSequenceNumber eq expectedMaxSequenceNumber }) {
+            if (insertEventRowsAffected != 0) {
+                val setProcessManagerStateRowsAffected = ProcessManagers.upsert(
+                    ProcessManagers.primaryKeyConstraintConflictTarget,
+                    { ProcessManagers.maxSequenceNumber eq expectedMaxSequenceNumber },
+                ) {
                     it[id] = processManagerCorrelationId.value
                     it[type] = processManagerType.blueprint.name
                     it[maxSequenceNumber] = nextSequenceNumber
@@ -122,117 +150,137 @@ class PostgresBackend(
     }
 
     override suspend fun findIdsForProcessManagersAwaitingProcessing(pageable: Pageable): Page<ProcessManagerCorrelationId> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented")
     }
-
-
 
     // TODO: Will need to implement snapshot retrieval
     // TODO: Should this try to loop through executing all outstanding unprocessed events, or just the next one?
     // If it loops, each iteration should (would have to) be in a separate transaction
     override suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> executeProcessManager(
-            type: P,
-            id: ProcessManagerCorrelationId,
-            force: Boolean,
-            retryStrategy: ProcessManagerRetryStrategy,
-            processHandler: suspend (PersistedProcessManager<E, P>) -> ProcessManagerProcessingResult): ProcessManagerProcessingResult {
-
+        type: P,
+        id: ProcessManagerCorrelationId,
+        force: Boolean,
+        retryStrategy: ProcessManagerRetryStrategy,
+        processHandler: suspend (PersistedProcessManager<E, P>) -> ProcessManagerProcessingResult,
+    ): ProcessManagerProcessingResult {
         data class ProcessManagerMetadata(
-                val minSequenceNumber: Long,
-                val lastProcessedSequenceNumber: Long,
-                val nextOldestUnprocessedTimestamp: Instant?,
-                val retryCount: Int)
+            val minSequenceNumber: Long,
+            val lastProcessedSequenceNumber: Long,
+            val nextOldestUnprocessedTimestamp: Instant?,
+            val retryCount: Int,
+        )
 
-        data class PersistedProcessManagerEvent<E: DomainEvent>(
-                val eventId: EventId,
-                val rawEvent: E,
-                val timestamp: Instant,
-                val sequenceNumber: Long)
+        data class PersistedProcessManagerEvent<E : DomainEvent>(
+            val eventId: EventId,
+            val rawEvent: E,
+            val timestamp: Instant,
+            val sequenceNumber: Long,
+        )
 
         val processManager = db.transaction { _ ->
             // TODO: properly handle case where process manager is not found with id and type
-           ProcessManagers.select {
+            ProcessManagers.select {
                 (ProcessManagers.id eq id.value) and
-                (ProcessManagers.type eq type.blueprint.name) and
-                (ProcessManagers.hasUnprocessedEvents eq true) and
-                (ProcessManagers.suspended eq false)
-            }.firstOrNull()?.let { row -> Triple(
-                row[ProcessManagers.minSequenceNumber],
-                row[ProcessManagers.lastProcessedSequenceNumber],
-                row[ProcessManagers.retryCount]
-            )}?.let {
+                    (ProcessManagers.type eq type.blueprint.name) and
+                    (ProcessManagers.hasUnprocessedEvents eq true) and
+                    (ProcessManagers.suspended eq false)
+            }.firstOrNull()?.let { row ->
+                Triple(
+                    row[ProcessManagers.minSequenceNumber],
+                    row[ProcessManagers.lastProcessedSequenceNumber],
+                    row[ProcessManagers.retryCount],
+                )
+            }?.let {
                 val (minSequenceNumber, lastProcessedSequenceNumber, retryCount) = it
                 val events = ProcessManagerDomainEvents.select {
                     (ProcessManagerDomainEvents.processManagerCorrelationId eq id.value) and
-                            (ProcessManagerDomainEvents.type eq type.blueprint.name) and
-                            (ProcessManagerDomainEvents.sequenceNumber lessEq (lastProcessedSequenceNumber + 2)) and
-                            (ProcessManagerDomainEvents.sequenceNumber greaterEq minSequenceNumber)
+                        (ProcessManagerDomainEvents.type eq type.blueprint.name) and
+                        (ProcessManagerDomainEvents.sequenceNumber lessEq (lastProcessedSequenceNumber + 2)) and
+                        (ProcessManagerDomainEvents.sequenceNumber greaterEq minSequenceNumber)
                 }.orderBy(ProcessManagerDomainEvents.sequenceNumber).map { row ->
                     val rawEvent = mapper.deserialiseEvent<E>(
-                            row[DomainEvents.payload],
-                            row[DomainEvents.type],
-                            row[DomainEvents.version]
+                        row[DomainEvents.payload],
+                        row[DomainEvents.type],
+                        row[DomainEvents.version],
                     )
                     PersistedProcessManagerEvent(
                         eventId = EventId(row[ProcessManagerDomainEvents.id]),
                         rawEvent = rawEvent,
                         timestamp = row[ProcessManagerDomainEvents.timestamp],
-                        sequenceNumber = row[ProcessManagerDomainEvents.sequenceNumber]
+                        sequenceNumber = row[ProcessManagerDomainEvents.sequenceNumber],
                     )
                 }
 
                 PersistedProcessManager(
                     processManagerCorrelationId = id,
                     processManagerType = type,
-                    processedEvents = events.dropLastWhile { e -> e.sequenceNumber >= lastProcessedSequenceNumber + 2 }.map { e -> Pair(e.eventId, e.rawEvent) },
-                    nextEventToProcess = events.findLast { e -> e.sequenceNumber == lastProcessedSequenceNumber + 1 }?.let { e -> Pair(e.eventId, e.rawEvent) }
+                    processedEvents = events.dropLastWhile { e -> e.sequenceNumber >= lastProcessedSequenceNumber + 2 }
+                        .map { e -> Pair(e.eventId, e.rawEvent) },
+                    nextEventToProcess = events.findLast { e -> e.sequenceNumber == lastProcessedSequenceNumber + 1 }
+                        ?.let { e -> Pair(e.eventId, e.rawEvent) },
                 ) to ProcessManagerMetadata(
                     minSequenceNumber = minSequenceNumber,
                     lastProcessedSequenceNumber = lastProcessedSequenceNumber,
                     nextOldestUnprocessedTimestamp = events.findLast { e -> e.sequenceNumber == lastProcessedSequenceNumber + 2 }?.timestamp,
-                    retryCount = retryCount
+                    retryCount = retryCount,
                 )
             }
         }
 
-        return if(processManager != null) {
-            if(processManager.first.nextEventToProcess != null) {
+        return if (processManager != null) {
+            if (processManager.first.nextEventToProcess != null) {
                 try {
-                    val result = processHandler(processManager.first)
-                    when(result) {
+                    when (val result = processHandler(processManager.first)) {
                         is Continue -> {
-                            val rowsAffected = ProcessManagers.upsert(ProcessManagers.primaryKeyConstraintConflictTarget(), {
-                                ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
-                            }) {
-                                it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
-                                it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
-                                it[ProcessManagers.lastProcessedSequenceNumber] = processManager.second.lastProcessedSequenceNumber + 1
-                                it[ProcessManagers.suspended] = false
-                                it[ProcessManagers.oldestUnprocessedTimestamp] = processManager.second.nextOldestUnprocessedTimestamp ?: Instant.now()
-                                it[ProcessManagers.hasUnprocessedEvents] = processManager.second.nextOldestUnprocessedTimestamp != null
-                                it[ProcessManagers.retryCount] = 0
-                                it[ProcessManagers.retryAfter] = null
-                                it[ProcessManagers.processingLastAttemptedAt] = Instant.now()
-                            }
-                            if(rowsAffected > 0) result else AlreadyProcessed
+                            val rowsAffected =
+                                ProcessManagers.upsert(
+                                    ProcessManagers.primaryKeyConstraintConflictTarget(),
+                                    {
+                                        ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
+                                    },
+                                ) {
+                                    it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
+                                    it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
+                                    it[lastProcessedSequenceNumber] =
+                                        processManager.second.lastProcessedSequenceNumber + 1
+                                    it[suspended] = false
+                                    it[oldestUnprocessedTimestamp] =
+                                        processManager.second.nextOldestUnprocessedTimestamp ?: Instant.now()
+                                    it[hasUnprocessedEvents] =
+                                        processManager.second.nextOldestUnprocessedTimestamp != null
+                                    it[retryCount] = 0
+                                    it[retryAfter] = null
+                                    it[processingLastAttemptedAt] = Instant.now()
+                                }
+                            if (rowsAffected > 0) result else AlreadyProcessed
                         }
+
                         is Finished -> {
-                            val rowsAffected = ProcessManagers.upsert(ProcessManagers.primaryKeyConstraintConflictTarget(), {
-                                ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
-                            }) {
-                                it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
-                                it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
-                                it[ProcessManagers.lastProcessedSequenceNumber] = processManager.second.lastProcessedSequenceNumber + 1
-                                it[ProcessManagers.minSequenceNumber] = processManager.second.lastProcessedSequenceNumber + 2
-                                it[ProcessManagers.suspended] = false
-                                it[ProcessManagers.oldestUnprocessedTimestamp] = processManager.second.nextOldestUnprocessedTimestamp ?: Instant.now()
-                                it[ProcessManagers.hasUnprocessedEvents] = processManager.second.nextOldestUnprocessedTimestamp != null
-                                it[ProcessManagers.retryCount] = 0
-                                it[ProcessManagers.retryAfter] = null
-                                it[ProcessManagers.processingLastAttemptedAt] = Instant.now()
-                            }
-                            if(rowsAffected > 0) result else AlreadyProcessed
+                            val rowsAffected =
+                                ProcessManagers.upsert(
+                                    ProcessManagers.primaryKeyConstraintConflictTarget(),
+                                    {
+                                        ProcessManagers.lastProcessedSequenceNumber eq processManager.second.lastProcessedSequenceNumber
+                                    },
+                                ) {
+                                    it[ProcessManagers.id] = processManager.first.processManagerCorrelationId.value
+                                    it[ProcessManagers.type] = processManager.first.processManagerType.blueprint.name
+                                    it[lastProcessedSequenceNumber] =
+                                        processManager.second.lastProcessedSequenceNumber + 1
+                                    it[minSequenceNumber] =
+                                        processManager.second.lastProcessedSequenceNumber + 2
+                                    it[suspended] = false
+                                    it[oldestUnprocessedTimestamp] =
+                                        processManager.second.nextOldestUnprocessedTimestamp ?: Instant.now()
+                                    it[hasUnprocessedEvents] =
+                                        processManager.second.nextOldestUnprocessedTimestamp != null
+                                    it[retryCount] = 0
+                                    it[retryAfter] = null
+                                    it[processingLastAttemptedAt] = Instant.now()
+                                }
+                            if (rowsAffected > 0) result else AlreadyProcessed
                         }
+
                         is Failed -> {
                             // TODO: Update last processed sequence number - ignore optimistic concurrency error
                             // TODO: Save failure info to database
@@ -242,27 +290,36 @@ class PostgresBackend(
                             // TODO: Set last_process_attempted_at
                             result
                         }
+
                         is NothingToProcess -> result
                         is AlreadyProcessed -> result
                     }
                 } catch (ex: Throwable) {
                     Failed(failureCode = "unhandled_exception", ex = ex)
                 }
-            } else NothingToProcess
-        } else NothingToProcess
+            } else {
+                NothingToProcess
+            }
+        } else {
+            NothingToProcess
+        }
     }
 
-    override suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterOffset: Long, batchSize: Int): EventStream {
+    override suspend fun <E : DomainEvent> loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterOffset: Long,
+        batchSize: Int,
+    ): EventStream {
         return db.transaction {
             val maxExpr = DomainEvents.globalOffset.max()
             val maxOffset = DomainEvents.slice(maxExpr).select {
                 (DomainEvents.tag inList tags.map { it.value }) and
-                (DomainEvents.globalOffset greater afterOffset)
+                    (DomainEvents.globalOffset greater afterOffset)
             }.firstOrNull()?.let { row -> row[maxExpr] } ?: -1L
 
             val events = DomainEvents.select {
                 (DomainEvents.tag inList tags.map { it.value }) and
-                (DomainEvents.globalOffset greater afterOffset)
+                    (DomainEvents.globalOffset greater afterOffset)
             }.orderBy(DomainEvents.globalOffset).limit(batchSize).map { row ->
                 rowToStreamEvent<E>(row)
             }
@@ -273,71 +330,95 @@ class PostgresBackend(
                 batchSize = batchSize,
                 startOffset = events.firstOrNull()?.offset,
                 endOffset = events.lastOrNull()?.offset,
-                maxOffset = if(maxOffset == -1L) events.lastOrNull()?.offset ?: -1L else maxOffset)
+                maxOffset = if (maxOffset == -1L) events.lastOrNull()?.offset ?: -1L else maxOffset,
+            )
         }
     }
 
-    override suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterInstant: Instant, batchSize: Int): EventStream {
+    override suspend fun <E : DomainEvent> loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterInstant: Instant,
+        batchSize: Int,
+    ): EventStream {
         return db.transaction {
             val maxExpr = DomainEvents.globalOffset.max()
             val maxOffset = DomainEvents.slice(maxExpr).select {
                 (DomainEvents.tag inList tags.map { it.value }) and
-                (DomainEvents.timestamp greater afterInstant)
+                    (DomainEvents.timestamp greater afterInstant)
             }.firstOrNull()?.let { row -> row[maxExpr] } ?: -1L
 
             val events = DomainEvents.select {
                 (DomainEvents.tag inList tags.map { it.value }) and
-                (DomainEvents.timestamp greater afterInstant)
+                    (DomainEvents.timestamp greater afterInstant)
             }.orderBy(DomainEvents.globalOffset).limit(batchSize).map { row ->
                 rowToStreamEvent<E>(row)
             }
 
             EventStream(
-                    events = events,
-                    tags = tags,
-                    batchSize = batchSize,
-                    startOffset = events.firstOrNull()?.offset,
-                    endOffset = events.lastOrNull()?.offset,
-                    maxOffset = if(maxOffset == -1L) events.lastOrNull()?.offset ?: -1L else maxOffset
+                events = events,
+                tags = tags,
+                batchSize = batchSize,
+                startOffset = events.firstOrNull()?.offset,
+                endOffset = events.lastOrNull()?.offset,
+                maxOffset = if (maxOffset == -1L) events.lastOrNull()?.offset ?: -1L else maxOffset,
             )
         }
     }
 
-    override suspend fun <E : DomainEvent, A: Aggregate<*,E,*>> loadEvents(aggregateType: A, aggregateId: AggregateId): List<PersistedEvent<E>> {
+    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+    ): List<PersistedEvent<E>> {
         return db.transaction {
             DomainEvents.select {
                 (DomainEvents.aggregateId eq aggregateId.value) and
-                (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
-                (DomainEvents.sequenceNumber greater -1L)
+                    (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
+                    (DomainEvents.sequenceNumber greater -1L)
             }.orderBy(DomainEvents.sequenceNumber).map { row -> rowToPersistedEvent(aggregateType, row) }
         }
     }
 
-    override suspend fun <E : DomainEvent, A: Aggregate<*,E,*>> loadEvents(aggregateType: A, aggregateId: AggregateId, afterSequenceNumber: Long): List<PersistedEvent<E>> {
+    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+        afterSequenceNumber: Long,
+    ): List<PersistedEvent<E>> {
         return db.transaction {
             DomainEvents.select {
                 (DomainEvents.aggregateId eq aggregateId.value) and
-                (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
-                (DomainEvents.sequenceNumber greater afterSequenceNumber)
+                    (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
+                    (DomainEvents.sequenceNumber greater afterSequenceNumber)
             }.orderBy(DomainEvents.sequenceNumber).map { row -> rowToPersistedEvent(aggregateType, row) }
         }
     }
 
-    override suspend fun <E : DomainEvent, A: Aggregate<*,E,*>> saveEvents(aggregateType: A, aggregateId: AggregateId, causationId: CausationId, rawEvents: List<E>, expectedSequenceNumber: Long, correlationId: CorrelationId?): List<PersistedEvent<E>> {
-        val saveableEvents = rawEvents.fold(Pair(expectedSequenceNumber + 1, emptyList<SaveableEvent<E>>())) { acc, e ->
-            Pair(acc.first + 1, acc.second + SaveableEvent(
-                id = EventId(),
-                aggregateId = aggregateId,
-                aggregateType = aggregateType,
-                causationId = causationId,
-                correlationId = correlationId,
-                eventType = e::class as KClass<E>,
-                rawEvent = e,
-                serialisationResult = mapper.serialiseEvent(e),
-                timestamp = Instant.now(),
-                sequenceNumber = acc.first
-            ))
-        }
+    override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> saveEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+        causationId: CausationId,
+        rawEvents: List<E>,
+        expectedSequenceNumber: Long,
+        correlationId: CorrelationId?,
+    ): List<PersistedEvent<E>> {
+        @Suppress("UNCHECKED_CAST")
+        val saveableEvents =
+            rawEvents.fold(Pair(expectedSequenceNumber + 1, emptyList<SaveableEvent<E>>())) { acc, e ->
+                Pair(
+                    acc.first + 1,
+                    acc.second + SaveableEvent(
+                        id = EventId(),
+                        aggregateId = aggregateId,
+                        aggregateType = aggregateType,
+                        causationId = causationId,
+                        correlationId = correlationId,
+                        eventType = e::class as KClass<E>,
+                        rawEvent = e,
+                        serialisationResult = mapper.serialiseEvent(e),
+                        timestamp = Instant.now(),
+                        sequenceNumber = acc.first,
+                    ),
+                )
+            }
 
         val persistedEvents = saveableEvents.second.map { it.toPersistedEvent() }
 
@@ -357,19 +438,23 @@ class PostgresBackend(
                 this[DomainEvents.sequenceNumber] = event.sequenceNumber
             }
 
-            val saveAggregateRowsAffected = AggregateRoots.upsert(AggregateRoots.primaryKeyConstraintConflictTarget, { AggregateRoots.version eq expectedSequenceNumber }) {
+            val saveAggregateRowsAffected = AggregateRoots.upsert(
+                AggregateRoots.primaryKeyConstraintConflictTarget,
+                { AggregateRoots.version eq expectedSequenceNumber },
+            ) {
                 it[id] = aggregateId.value
                 it[type] = aggregateType.blueprint.name
                 it[version] = saveableEvents.second.last().sequenceNumber
             }
 
-            if(saveAggregateRowsAffected == 0) throw OptimisticConcurrencyException
+            if (saveAggregateRowsAffected == 0) throw OptimisticConcurrencyException
 
             // Update synchronous read models
             readModels.forEach {
                 val projection = it.update
-                if(projection.aggregateType == aggregateType::class) {
+                if (projection.aggregateType == aggregateType::class) {
                     persistedEvents.forEach { e ->
+                        @Suppress("UNCHECKED_CAST")
                         projection.handleEvent(e as PersistedEvent<DomainEvent>)
                     }
                 }
@@ -380,18 +465,20 @@ class PostgresBackend(
     }
 
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> persistAggregate(
-            aggregateType: A,
-            aggregateId: AggregateId,
-            commandHandler: suspend (PersistedAggregate<E, A>) -> GeneratedEvents<E>): Try<List<PersistedEvent<E>>> {
-
+        aggregateType: A,
+        aggregateId: AggregateId,
+        commandHandler: suspend (PersistedAggregate<E, A>) -> GeneratedEvents<E>,
+    ): Try<List<PersistedEvent<E>>> {
         val previousEvents = loadEvents(aggregateType, aggregateId)
         val expectedSequenceNumber = previousEvents.lastOrNull()?.sequenceNumber ?: -1
 
         val persistedEvents = try {
-            val result = commandHandler(PersistedAggregate(
-                aggregateType = aggregateType,
-                aggregateId = aggregateId,
-                previousEvents = previousEvents.map { it.rawEvent })
+            val result = commandHandler(
+                PersistedAggregate(
+                    aggregateType = aggregateType,
+                    aggregateId = aggregateId,
+                    previousEvents = previousEvents.map { it.rawEvent },
+                ),
             )
             saveEvents(
                 aggregateType = aggregateType,
@@ -399,21 +486,25 @@ class PostgresBackend(
                 causationId = result.causationId,
                 rawEvents = result.events,
                 correlationId = result.correlationId,
-                expectedSequenceNumber = expectedSequenceNumber
+                expectedSequenceNumber = expectedSequenceNumber,
             )
         } catch (ex: Throwable) {
-            return Try.failure<List<PersistedEvent<E>>>(ex)
+            return Try.failure(ex)
         }
         return Try.success(persistedEvents)
     }
 
-    private fun <E: DomainEvent> rowToPersistedEvent(aggregateType: Aggregate<*,E,*>, row: ResultRow): PersistedEvent<E> {
+    private fun <E : DomainEvent> rowToPersistedEvent(
+        aggregateType: Aggregate<*, E, *>,
+        row: ResultRow,
+    ): PersistedEvent<E> {
         val rawEvent = mapper.deserialiseEvent<E>(
             row[DomainEvents.payload],
             row[DomainEvents.type],
-            row[DomainEvents.version]
+            row[DomainEvents.version],
         )
 
+        @Suppress("UNCHECKED_CAST")
         return PersistedEvent(
             id = EventId(row[DomainEvents.id]),
             aggregateId = AggregateId(row[DomainEvents.aggregateId]),
@@ -424,16 +515,16 @@ class PostgresBackend(
             eventVersion = row[DomainEvents.version],
             rawEvent = rawEvent,
             timestamp = row[DomainEvents.timestamp],
-            sequenceNumber = row[DomainEvents.sequenceNumber]
+            sequenceNumber = row[DomainEvents.sequenceNumber],
         )
     }
 
-    private fun <E: DomainEvent> rowToStreamEvent(row: ResultRow): StreamEvent {
-        // Need to load then re-serialise event to ensure format is migrated if necessary
+    private fun <E : DomainEvent> rowToStreamEvent(row: ResultRow): StreamEvent {
+        // Need to load then re-serialise event to ensure the format is migrated if necessary
         val rawEvent = mapper.deserialiseEvent<E>(
             row[DomainEvents.payload],
             row[DomainEvents.type],
-            row[DomainEvents.version]
+            row[DomainEvents.version],
         )
 
         val serialisedPayload = mapper.serialiseEvent(rawEvent)
@@ -450,24 +541,25 @@ class PostgresBackend(
             payloadContentType = serialisedPayload.contentType,
             serialisedPayload = serialisedPayload.payload,
             timestamp = row[DomainEvents.timestamp],
-            sequenceNumber = row[DomainEvents.sequenceNumber]
+            sequenceNumber = row[DomainEvents.sequenceNumber],
         )
     }
 
     data class SaveableEvent<E : DomainEvent>(
-         val id: EventId,
-         val aggregateType: Aggregate<*, E, *>,
-         val aggregateId: AggregateId,
-         val causationId: CausationId,
-         val correlationId: CorrelationId?,
-         val eventType: KClass<E>,
-         val rawEvent: E,
-         val serialisationResult: PayloadSerialisationResult,
-         val timestamp: Instant,
-         val sequenceNumber: Long) {
+        val id: EventId,
+        val aggregateType: Aggregate<*, E, *>,
+        val aggregateId: AggregateId,
+        val causationId: CausationId,
+        val correlationId: CorrelationId?,
+        val eventType: KClass<E>,
+        val rawEvent: E,
+        val serialisationResult: PayloadSerialisationResult,
+        val timestamp: Instant,
+        val sequenceNumber: Long,
+    ) {
 
-         fun toPersistedEvent() =
-             PersistedEvent(
+        fun toPersistedEvent() =
+            PersistedEvent(
                 id = EventId(),
                 aggregateId = aggregateId,
                 aggregateType = aggregateType,
@@ -477,7 +569,7 @@ class PostgresBackend(
                 eventVersion = serialisationResult.version,
                 rawEvent = rawEvent,
                 timestamp = Instant.now(),
-                sequenceNumber = sequenceNumber
-             )
+                sequenceNumber = sequenceNumber,
+            )
     }
 }

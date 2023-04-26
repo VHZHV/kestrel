@@ -10,20 +10,21 @@ import com.google.gson.JsonParser
 import io.ktor.application.ApplicationCall
 import io.ktor.http.ContentType
 import io.ktor.response.respondText
-import kotlinx.coroutines.io.jvm.javaio.toInputStream
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.InputStreamReader
 
 abstract class BaseRoutes {
 
     companion object {
         val gson = Gson()
-        val jsonParser = JsonParser()
     }
 
     suspend fun ApplicationCall.respondWithJson(obj: Any) = respondText(gson.toJson(obj), ContentType.Application.Json)
 
-    suspend fun ApplicationCall.receiveJson() = jsonParser.parse(InputStreamReader(request.receiveChannel().toInputStream())) as JsonObject
+    fun ApplicationCall.receiveJson() =
+        JsonParser.parseReader(InputStreamReader(request.receiveChannel().toInputStream())) as JsonObject
 
-    // Define extension to Int
-    infix suspend fun <C: DomainCommand, E: DomainEvent> C.sendTo(aggregateRoot: AggregateRoot<C, E>): CommandHandlingResult<E> = aggregateRoot.handleCommand(this)
+    // Define an extension to Int
+    suspend infix fun <C : DomainCommand, E : DomainEvent> C.sendTo(aggregateRoot: AggregateRoot<C, E>): CommandHandlingResult<E> =
+        aggregateRoot.handleCommand(this)
 }
