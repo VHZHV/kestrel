@@ -118,8 +118,7 @@ class UpsertStatement<Key : Any>(
         values.keys.filter { it !in conflictTarget.columns }
             .joinTo(this) { "${transaction.identity(it)}=EXCLUDED.${transaction.identity(it)}" }
 
-        val builder = QueryBuilder(true)
-        where?.let { append(" WHERE " + it.toQueryBuilder(builder)) }
+        where?.let { append(" WHERE ${QueryBuilder(true).append(it)}") }
     }
 
     override fun arguments(): List<List<Pair<IColumnType, Any?>>> {
