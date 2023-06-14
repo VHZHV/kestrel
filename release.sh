@@ -2,7 +2,7 @@
 
 set -Euo pipefail
 
-mvn versions:set
-mvn clean deploy
-mvn scm:tag
-mvn versions:set
+./mvnw versions:set
+./mvnw clean deploy
+./mvnw scm:tag
+./mvnw versions:set
