@@ -1,0 +1,40 @@
+---
+version: v1.0
+name: Build
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+
+auto_cancel:
+  queued:
+    when: "true"
+fail_fast:
+  stop:
+    when: "true"
+
+global_job_config:
+  env_vars:
+    - name: CLOUDSDK_CORE_PROJECT
+      value: hozah-permits
+  secrets:
+    - name: Permits cloud build key
+  prologue:
+    commands:
+      - gcloud auth activate-service-account --key-file=.cloud-build.key
+      - checkout
+
+blocks:
+  - name: Build
+    task:
+      jobs:
+        - name: Build
+          commands:
+            - substitutions=""
+            - substitutions+="TAG_NAME=${SEMAPHORE_GIT_TAG_NAME:-0.${SEMAPHORE_GIT_PR_NUMBER}.0}"
+            - substitutions+=",BRANCH_NAME=kestrel.$(echo
+              "${SEMAPHORE_GIT_PR_BRANCH:-master}" | tr '/' '.')"
+            - substitutions+=",SHORT_SHA=${SEMAPHORE_GIT_PR_SHA:-${SEMAPHORE_GIT_SHA}}"
+
+            - gcloud builds submit --config=./cloudbuild_test.yaml
+              --substitutions="${substitutions}"

@@ -38,8 +38,8 @@ import com.google.inject.Singleton
 import com.google.inject.multibindings.Multibinder
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.application.Application
-import io.ktor.config.ApplicationConfig
+import io.ktor.server.application.Application
+import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.Dispatchers
 import org.asynchttpclient.DefaultAsyncHttpClient
 import java.time.Duration
