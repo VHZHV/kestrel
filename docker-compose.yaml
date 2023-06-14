@@ -2,8 +2,9 @@
 version: "2"
 services:
   example:
-    build:
-      context: .
+    build: .
+    depends_on:
+      - example-db
     volumes:
       - .:/src
       - ~/.m2/repository:/root/.m2/repository
@@ -23,6 +24,8 @@ services:
       - POSTGRES_PASSWORD=password
   pg-admin:
     image: thajeztah/pgadmin4
+    depends_on:
+      - example-db
     restart: always
     ports:
       - 5050:5050
