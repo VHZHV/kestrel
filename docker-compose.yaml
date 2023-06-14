@@ -1,4 +1,5 @@
-version: '2'
+---
+version: "2"
 services:
   example:
     build:
@@ -7,8 +8,8 @@ services:
       - .:/src
       - ~/.m2/repository:/root/.m2/repository
     ports:
-      - "8080:8080"
-      - "5005:5005"
+      - 8080:8080
+      - 5005:5005
     restart: always
     privileged: true
     stdin_open: true
@@ -17,13 +18,13 @@ services:
     image: postgres:15-alpine
     restart: always
     ports:
-      - "5432:5432"
+      - 5432:5432
     environment:
       - POSTGRES_PASSWORD=password
   pg-admin:
     image: thajeztah/pgadmin4
     restart: always
     ports:
-      - "5050:5050"
+      - 5050:5050
 volumes:
-  m2-cache:
+  m2-cache: null

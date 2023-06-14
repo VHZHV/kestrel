@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Euo pipefail
 
 mvn versions:set
 mvn clean deploy

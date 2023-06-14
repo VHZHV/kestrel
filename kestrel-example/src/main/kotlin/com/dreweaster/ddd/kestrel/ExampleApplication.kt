@@ -2,7 +2,7 @@ package com.dreweaster.ddd.kestrel
 
 import com.dreweaster.ddd.kestrel.infrastructure.ExampleModule
 import com.google.inject.Guice
-import io.ktor.server.application.Application
+import io.ktor.application.Application
 import io.ktor.server.engine.commandLineEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
