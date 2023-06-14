@@ -1,0 +1,14 @@
+---
+steps:
+  - name: eclipse-temurin:11-jre-jammy
+    entrypoint: bash
+    args:
+      - -c
+      - ./mvnw --threads=1.5C verify
+timeout: 2400s
+tags:
+  - build
+  - kestrel
+  - ${BRANCH_NAME}
+  - ${TAG_NAME}
+  - ${SHORT_SHA}
