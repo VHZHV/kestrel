@@ -15,18 +15,6 @@
         <maven.deploy.skip>false</maven.deploy.skip>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <!-- https://mvnrepository.com/artifact/com.google.guava/guava-bom -->
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava-bom</artifactId>
-                <version>31.1-jre</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
