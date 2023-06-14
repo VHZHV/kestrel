@@ -7,9 +7,9 @@ import com.dreweaster.ddd.kestrel.domain.DomainEvent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import io.ktor.application.ApplicationCall
 import io.ktor.http.ContentType
-import io.ktor.response.respondText
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.response.respondText
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.InputStreamReader
 
