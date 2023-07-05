@@ -12,7 +12,7 @@ import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.Tracer
 
-class OpenTelemetryMetricDomainModelReporter(openTelemetry: OpenTelemetry) : DomainModelReporter {
+class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : DomainModelReporter {
     val aggregateTypeKey = "aggregate_type"
     val eventTypeKey = "event_type"
     val commandTypeKey = "command_type"

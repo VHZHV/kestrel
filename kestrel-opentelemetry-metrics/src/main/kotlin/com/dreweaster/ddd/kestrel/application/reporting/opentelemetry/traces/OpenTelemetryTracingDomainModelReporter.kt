@@ -13,7 +13,7 @@ import io.opentelemetry.api.trace.Tracer
 const val aggregateTypeKey = "aggregate_type"
 const val commandTypeKey = "command_type"
 
-class OpenTelemetryTraceDomainModelReporter(openTelemetry: OpenTelemetry) : DomainModelReporter {
+class OpenTelemetryTracingDomainModelReporter(openTelemetry: OpenTelemetry) : DomainModelReporter {
 
     private val tracer: Tracer = openTelemetry.getTracer("com.dreweaster.ddd.kestrel.DomainModelReporter")
 
