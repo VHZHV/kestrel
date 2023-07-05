@@ -10,7 +10,7 @@
         <version>0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kestrel-opencensus-metrics</artifactId>
+    <artifactId>kestrel-opentelemetry-metrics</artifactId>
 
     <dependencyManagement>
         <dependencies>
