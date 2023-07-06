@@ -46,7 +46,7 @@ object UnsupportedOperationInMemoryEventStreamHandler : InMemoryEventStreamHandl
 }
 
 class SerialiseInMemoryEventStreamHandlers(
-    private val mapping: Map<KClass<DomainEvent>, EventPayloadMapper>,
+    private val mapping: EventPayloadMapper,
     private val inMemoryBackend: InMemoryBackend
 ) : InMemoryEventStreamHandlers {
 
@@ -63,7 +63,7 @@ class SerialiseInMemoryEventStreamHandlers(
         val window = matching.filter(filter)
             .take(batchSize)
             .map { (event, offset) ->
-                val mapped = mapping[event.rawEvent::class]?.serialiseEvent(event.rawEvent)!!
+                val mapped = mapping.serialiseEvent(event.rawEvent)
                 StreamEvent(
                     offset,
                     event.id,
