@@ -11,33 +11,31 @@ import org.slf4j.LoggerFactory
 
 class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructor(
     openTelemetry: OpenTelemetry,
-    private val context: BoundedContextName
+    private val context: BoundedContextName,
 ) : BoundedContextHttpEventStreamSourceReporter {
 
-        val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.DomainModelReporter")
-            .build()
+    private val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.DomainModelReporter")
+        .build()
 
-        val eventHandledMeter: LongCounter = meter
-            .counterBuilder("event_handled")
-            .setDescription("An attempt to handle an event")
-            .setUnit("1")
-            .build()
+    val eventHandledMeter: LongCounter = meter
+        .counterBuilder("event_handled")
+        .setDescription("An attempt to handle an event")
+        .setUnit("1")
+        .build()
 
-        val maxOffsetMeter: LongCounter = meter
-            .counterBuilder("max_offset")
-            .setDescription("The maximum offset available for a consumer to consume to")
-            .setUnit("events")
-            .build()
+    val maxOffsetMeter: LongCounter = meter
+        .counterBuilder("max_offset")
+        .setDescription("The maximum offset available for a consumer to consume to")
+        .setUnit("events")
+        .build()
 
-        val currentOffsetMeter: LongCounter = meter
-            .counterBuilder("current_offset_latest")
-            .setDescription("Current offset a consumer has reached")
-            .setUnit("events")
-            .build()
+    val currentOffsetMeter: LongCounter = meter
+        .counterBuilder("current_offset_latest")
+        .setDescription("Current offset a consumer has reached")
+        .setUnit("events")
+        .build()
 
-
-        private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
-
+    private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
 
     override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe =
         OpenCensusBoundedContextHttpEventStreamSourceProbe(subscriberName)
@@ -60,9 +58,9 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructo
         private val failureAttributes = baseAttributes()
             .put("result", "failure")
 
-
         override fun startedHandlingEvent(eventType: String) {
         }
+
         override fun finishedHandlingEvent() {
             eventHandledMeter.add(1, successAttributes.build())
         }
@@ -93,6 +91,5 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructo
         }
 
         override fun finishedSavingOffset(ex: Throwable) {}
-
     }
 }

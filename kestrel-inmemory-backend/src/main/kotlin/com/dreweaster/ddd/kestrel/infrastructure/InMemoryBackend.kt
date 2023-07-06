@@ -1,19 +1,6 @@
 package com.dreweaster.ddd.kestrel.infrastructure
 
-import com.dreweaster.ddd.kestrel.application.AggregateId
-import com.dreweaster.ddd.kestrel.application.Backend
-import com.dreweaster.ddd.kestrel.application.CausationId
-import com.dreweaster.ddd.kestrel.application.CorrelationId
-import com.dreweaster.ddd.kestrel.application.EventId
-import com.dreweaster.ddd.kestrel.application.EventStream
-import com.dreweaster.ddd.kestrel.application.GeneratedEvents
-import com.dreweaster.ddd.kestrel.application.OptimisticConcurrencyException
-import com.dreweaster.ddd.kestrel.application.PersistedAggregate
-import com.dreweaster.ddd.kestrel.application.PersistedEvent
-import com.dreweaster.ddd.kestrel.application.PersistedProcessManager
-import com.dreweaster.ddd.kestrel.application.ProcessManagerCorrelationId
-import com.dreweaster.ddd.kestrel.application.ProcessManagerProcessingResult
-import com.dreweaster.ddd.kestrel.application.ProcessManagerRetryStrategy
+import com.dreweaster.ddd.kestrel.application.*
 import com.dreweaster.ddd.kestrel.application.pagination.Page
 import com.dreweaster.ddd.kestrel.application.pagination.Pageable
 import com.dreweaster.ddd.kestrel.domain.Aggregate
@@ -25,11 +12,109 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.reflect.KClass
 
-open class InMemoryBackend : Backend {
+
+interface InMemoryEventStreamHandlers {
+    suspend fun loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterOffset: Long,
+        batchSize: Int,
+    ): EventStream
+
+    suspend fun loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterInstant: Instant,
+        batchSize: Int,
+    ): EventStream
+}
+
+object UnsupportedOperationInMemoryEventStreamHandler : InMemoryEventStreamHandlers {
+    override suspend fun loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterOffset: Long,
+        batchSize: Int
+    ): EventStream {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun  loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterInstant: Instant,
+        batchSize: Int
+    ): EventStream {
+        throw UnsupportedOperationException()
+    }
+}
+
+class SerialiseInMemoryEventStreamHandlers(
+    private val mapping: Map<KClass<DomainEvent>, EventPayloadMapper>,
+    private val inMemoryBackend: InMemoryBackend
+) : InMemoryEventStreamHandlers {
+
+    private fun retrieveEvents(
+        tags: Set<DomainEventTag>,
+        batchSize: Int,
+        filter: (Pair<PersistedEvent<*>, Long>) -> Boolean
+    ):EventStream{
+        val matching = inMemoryBackend.events.filter {
+            tags.contains(it.first.rawEvent.tag)
+        }
+        val maxOffset = matching.lastOrNull()?.second?:1L
+
+        val window = matching.filter(filter)
+            .take(batchSize)
+            .map { (event, offset) ->
+                val mapped = mapping[event.rawEvent::class]?.serialiseEvent(event.rawEvent)!!
+                StreamEvent(
+                    offset,
+                    event.id,
+                    event.aggregateType.blueprint.name,
+                    event.aggregateId,
+                    event.causationId,
+                    event.correlationId,
+                    event.eventType.qualifiedName!!,
+                    event.rawEvent.tag,
+                    event.timestamp,
+                    event.sequenceNumber,
+                    mapped.payload,
+                    mapped.contentType
+                )
+            }
+
+        return EventStream(
+            events = window,
+            tags = tags,
+            batchSize = batchSize,
+            startOffset = window.firstOrNull()?.offset,
+            endOffset = window.lastOrNull()?.offset,
+            maxOffset = maxOffset
+        )
+    }
+
+    override suspend fun loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterOffset: Long,
+        batchSize: Int
+    ):EventStream = retrieveEvents(tags,batchSize){
+            it.second > afterOffset
+    }
+
+    override suspend fun loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterInstant: Instant,
+        batchSize: Int
+    ): EventStream = retrieveEvents(tags,batchSize){
+        it.first.timestamp > afterInstant
+    }
+
+}
+
+open class InMemoryBackend(val streamers: InMemoryEventStreamHandlers = UnsupportedOperationInMemoryEventStreamHandler) :
+    Backend {
 
     private var nextOffset: Long = 0L
 
-    private var events: List<Pair<*, *>> = emptyList()
+    var events: List<Pair<PersistedEvent<*>, Long>> = emptyList()
+        private set
 
     fun clear() {
         events = emptyList()
@@ -76,18 +161,18 @@ open class InMemoryBackend : Backend {
                 Pair(
                     acc.first + 1,
                     acc.second +
-                        PersistedEvent(
-                            EventId(UUID.randomUUID().toString()),
-                            aggregateType,
-                            aggregateId,
-                            causationId,
-                            correlationId,
-                            e::class as KClass<E>,
-                            1,
-                            e,
-                            Instant.now(),
-                            acc.first,
-                        ),
+                            PersistedEvent(
+                                EventId(UUID.randomUUID().toString()),
+                                aggregateType,
+                                aggregateId,
+                                causationId,
+                                correlationId,
+                                e::class as KClass<E>,
+                                1,
+                                e,
+                                Instant.now(),
+                                acc.first,
+                            ),
                 )
             }.second
 
@@ -127,17 +212,13 @@ open class InMemoryBackend : Backend {
         tags: Set<DomainEventTag>,
         afterOffset: Long,
         batchSize: Int,
-    ): EventStream {
-        throw UnsupportedOperationException()
-    }
+    ): EventStream = streamers.loadEventStream(tags, afterOffset, batchSize)
 
     override suspend fun <E : DomainEvent> loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
         batchSize: Int,
-    ): EventStream {
-        throw UnsupportedOperationException()
-    }
+    ): EventStream = streamers.loadEventStream(tags, afterInstant, batchSize)
 
     @Suppress("UNCHECKED_CAST")
     private fun <E : DomainEvent> persistedEventsFor(
@@ -158,4 +239,6 @@ open class InMemoryBackend : Backend {
         return persistedEventsFor(aggregateType, aggregateId)
             .lastOrNull()?.sequenceNumber?.equals(expectedSequenceNumber)?.not() == true
     }
+
+
 }
