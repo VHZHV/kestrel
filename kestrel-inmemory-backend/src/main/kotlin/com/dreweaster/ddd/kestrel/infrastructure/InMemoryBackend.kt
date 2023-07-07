@@ -12,8 +12,7 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.reflect.KClass
 
-
-interface InMemoryEventStreamHandlers {
+interface InMemoryEventStreamHandler {
     suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterOffset: Long,
@@ -27,38 +26,38 @@ interface InMemoryEventStreamHandlers {
     ): EventStream
 }
 
-object UnsupportedOperationInMemoryEventStreamHandler : InMemoryEventStreamHandlers {
+object UnsupportedOperationInMemoryEventStreamHandler : InMemoryEventStreamHandler {
     override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterOffset: Long,
-        batchSize: Int
+        batchSize: Int,
     ): EventStream {
         throw UnsupportedOperationException()
     }
 
-    override suspend fun  loadEventStream(
+    override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
-        batchSize: Int
+        batchSize: Int,
     ): EventStream {
         throw UnsupportedOperationException()
     }
 }
 
-class SerialiseInMemoryEventStreamHandlers(
+class SerialiseInMemoryEventStreamHandler(
     private val mapping: EventPayloadMapper,
-    private val inMemoryBackend: InMemoryBackend
-) : InMemoryEventStreamHandlers {
+    private val events: () -> List<Pair<PersistedEvent<*>, Long>>,
+) : InMemoryEventStreamHandler {
 
     private fun retrieveEvents(
         tags: Set<DomainEventTag>,
         batchSize: Int,
-        filter: (Pair<PersistedEvent<*>, Long>) -> Boolean
-    ):EventStream{
-        val matching = inMemoryBackend.events.filter {
+        filter: (Pair<PersistedEvent<*>, Long>) -> Boolean,
+    ): EventStream {
+        val matching = events().filter {
             tags.contains(it.first.rawEvent.tag)
         }
-        val maxOffset = matching.lastOrNull()?.second?:1L
+        val maxOffset = matching.lastOrNull()?.second ?: 1L
 
         val window = matching.filter(filter)
             .take(batchSize)
@@ -76,7 +75,7 @@ class SerialiseInMemoryEventStreamHandlers(
                     event.timestamp,
                     event.sequenceNumber,
                     mapped.payload,
-                    mapped.contentType
+                    mapped.contentType,
                 )
             }
 
@@ -86,31 +85,30 @@ class SerialiseInMemoryEventStreamHandlers(
             batchSize = batchSize,
             startOffset = window.firstOrNull()?.offset,
             endOffset = window.lastOrNull()?.offset,
-            maxOffset = maxOffset
+            maxOffset = maxOffset,
         )
     }
 
     override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterOffset: Long,
-        batchSize: Int
-    ):EventStream = retrieveEvents(tags,batchSize){
-            it.second > afterOffset
+        batchSize: Int,
+    ): EventStream = retrieveEvents(tags, batchSize) {
+        it.second > afterOffset
     }
 
     override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
-        batchSize: Int
-    ): EventStream = retrieveEvents(tags,batchSize){
+        batchSize: Int,
+    ): EventStream = retrieveEvents(tags, batchSize) {
         it.first.timestamp > afterInstant
     }
-
 }
 
-open class InMemoryBackend(val streamers: InMemoryEventStreamHandlers = UnsupportedOperationInMemoryEventStreamHandler) :
-    Backend {
+open class InMemoryBackend : Backend {
 
+    var streamer: InMemoryEventStreamHandler = UnsupportedOperationInMemoryEventStreamHandler
     private var nextOffset: Long = 0L
 
     var events: List<Pair<PersistedEvent<*>, Long>> = emptyList()
@@ -161,18 +159,18 @@ open class InMemoryBackend(val streamers: InMemoryEventStreamHandlers = Unsuppor
                 Pair(
                     acc.first + 1,
                     acc.second +
-                            PersistedEvent(
-                                EventId(UUID.randomUUID().toString()),
-                                aggregateType,
-                                aggregateId,
-                                causationId,
-                                correlationId,
-                                e::class as KClass<E>,
-                                1,
-                                e,
-                                Instant.now(),
-                                acc.first,
-                            ),
+                        PersistedEvent(
+                            EventId(UUID.randomUUID().toString()),
+                            aggregateType,
+                            aggregateId,
+                            causationId,
+                            correlationId,
+                            e::class as KClass<E>,
+                            1,
+                            e,
+                            Instant.now(),
+                            acc.first,
+                        ),
                 )
             }.second
 
@@ -212,13 +210,13 @@ open class InMemoryBackend(val streamers: InMemoryEventStreamHandlers = Unsuppor
         tags: Set<DomainEventTag>,
         afterOffset: Long,
         batchSize: Int,
-    ): EventStream = streamers.loadEventStream(tags, afterOffset, batchSize)
+    ): EventStream = streamer.loadEventStream(tags, afterOffset, batchSize)
 
     override suspend fun <E : DomainEvent> loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
         batchSize: Int,
-    ): EventStream = streamers.loadEventStream(tags, afterInstant, batchSize)
+    ): EventStream = streamer.loadEventStream(tags, afterInstant, batchSize)
 
     @Suppress("UNCHECKED_CAST")
     private fun <E : DomainEvent> persistedEventsFor(
@@ -239,6 +237,4 @@ open class InMemoryBackend(val streamers: InMemoryEventStreamHandlers = Unsuppor
         return persistedEventsFor(aggregateType, aggregateId)
             .lastOrNull()?.sequenceNumber?.equals(expectedSequenceNumber)?.not() == true
     }
-
-
 }

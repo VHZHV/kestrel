@@ -14,7 +14,13 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructo
     private val context: BoundedContextName,
 ) : BoundedContextHttpEventStreamSourceReporter {
 
-    private val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.DomainModelReporter")
+    private val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.BoundedContextHttpEventStreamSourceReporter")
+        .build()
+
+    val consumptionAttemptMeter: LongCounter = meter
+        .counterBuilder("consumption_attempted")
+        .setDescription("An attempt to read from the event stream")
+        .setUnit("1")
         .build()
 
     val eventHandledMeter: LongCounter = meter
@@ -33,6 +39,18 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructo
         .counterBuilder("current_offset_latest")
         .setDescription("Current offset a consumer has reached")
         .setUnit("events")
+        .build()
+
+    val offsetRetrievalMeter: LongCounter = meter
+        .counterBuilder("offset_retrievals")
+        .setDescription("Attempts to retrieve current stream's offset")
+        .setUnit("1")
+        .build()
+
+    val offsetStorageMeter: LongCounter = meter
+        .counterBuilder("offset_stores")
+        .setDescription("Attempts to store current stream's offset")
+        .setUnit("1")
         .build()
 
     private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
@@ -70,26 +88,38 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter constructo
         }
 
         override fun startedConsuming() {}
-        override fun finishedConsuming() {}
-        override fun finishedConsuming(ex: Throwable) {}
+        override fun finishedConsuming() {
+            consumptionAttemptMeter.add(1, successAttributes.build())
+        }
+        override fun finishedConsuming(ex: Throwable) {
+            consumptionAttemptMeter.add(1, failureAttributes.build())
+        }
         override fun startedFetchingEventStream() {}
         override fun finishedFetchingEventStream(maxOffset: Long) {
             maxOffsetMeter.add(maxOffset, baseAttributes().build())
         }
 
-        override fun finishedFetchingEventStream(ex: Throwable) {}
+        override fun finishedFetchingEventStream(ex: Throwable) {
+        }
 
         override fun startedFetchingOffset() {}
-        override fun finishedFetchingOffset() {}
-        override fun finishedFetchingOffset(ex: Throwable) {}
+        override fun finishedFetchingOffset() {
+            offsetRetrievalMeter.add(1, successAttributes.build())
+        }
+        override fun finishedFetchingOffset(ex: Throwable) {
+            offsetRetrievalMeter.add(1, failureAttributes.build())
+        }
         override fun startedSavingOffset() {}
         override fun finishedSavingOffset(offset: Long) {
             // Sometimes reported as -1 (if value is unknown), but this isn't helpful to record
             if (offset >= 0) {
                 currentOffsetMeter.add(offset, baseAttributes().build())
             }
+            offsetStorageMeter.add(1, successAttributes.build())
         }
 
-        override fun finishedSavingOffset(ex: Throwable) {}
+        override fun finishedSavingOffset(ex: Throwable) {
+            offsetRetrievalMeter.add(1, failureAttributes.build())
+        }
     }
 }
