@@ -1,11 +1,21 @@
 package com.dreweaster.ddd.kestrel.application.reporting.opentelemetry.metrics
 
-import com.dreweaster.ddd.kestrel.application.*
+import com.dreweaster.ddd.kestrel.application.AggregateId
+import com.dreweaster.ddd.kestrel.application.CommandHandlingResult
+import com.dreweaster.ddd.kestrel.application.DomainModel
+import com.dreweaster.ddd.kestrel.application.EventPayloadMapper
+import com.dreweaster.ddd.kestrel.application.EventSourcedDomainModel
+import com.dreweaster.ddd.kestrel.application.TwentyFourHourWindowCommandDeduplication
 import com.dreweaster.ddd.kestrel.application.eventstream.BoundedContextEventStreamSources
 import com.dreweaster.ddd.kestrel.application.eventstream.BoundedContextName
 import com.dreweaster.ddd.kestrel.application.eventstream.EventStreamSubscriptionEdenPolicy
 import com.dreweaster.ddd.kestrel.application.eventstream.StatelessEventConsumer
-import com.dreweaster.ddd.kestrel.domain.*
+import com.dreweaster.ddd.kestrel.domain.Aggregate
+import com.dreweaster.ddd.kestrel.domain.AggregateBlueprint
+import com.dreweaster.ddd.kestrel.domain.AggregateState
+import com.dreweaster.ddd.kestrel.domain.DomainCommand
+import com.dreweaster.ddd.kestrel.domain.DomainEvent
+import com.dreweaster.ddd.kestrel.domain.DomainEventTag
 import com.dreweaster.ddd.kestrel.infrastructure.InMemoryBackend
 import com.dreweaster.ddd.kestrel.infrastructure.SerialiseInMemoryEventStreamHandler
 import com.dreweaster.ddd.kestrel.infrastructure.cluster.LocalClusterManager
@@ -19,7 +29,9 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offse
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.producer.BoundedContextHttpJsonEventStreamProducer
 import com.dreweaster.ddd.kestrel.infrastructure.job.ScheduledExecutorServiceJobManager
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import com.github.tomakehurst.wiremock.common.FileSource
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.extension.Parameters
@@ -39,7 +51,6 @@ import io.opentelemetry.sdk.resources.Resource
 import org.asynchttpclient.DefaultAsyncHttpClient
 import org.asynchttpclient.RequestBuilder
 import org.slf4j.LoggerFactory
-import java.lang.Exception
 import java.time.Duration
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.hours
@@ -237,7 +248,7 @@ val configuration = WireMockConfiguration().port(8080).extensions(object : Respo
     }
 })
 
-class ProducingConsumingMetricsTest : WordSpec({
+class OpenTelemetryMetricsTest : WordSpec({
 
     val mockServer = WireMockServer(configuration)
     beforeSpec {
