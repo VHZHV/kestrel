@@ -15,8 +15,7 @@
         <module>kestrel-json</module>
         <module>kestrel-jdbc-backend</module>
         <module>kestrel-http-event-streams</module>
-        <module>kestrel-dropwizard-metrics</module>
-        <module>kestrel-prometheus-metrics</module>
+        <module>kestrel-opentelemetry-metrics</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -118,7 +117,11 @@
                 <artifactId>junit</artifactId>
                 <version>4.13.2</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>2.27.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
