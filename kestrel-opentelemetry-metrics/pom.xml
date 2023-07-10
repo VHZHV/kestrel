@@ -7,7 +7,7 @@
     <parent>
         <artifactId>kestrel</artifactId>
         <groupId>com.dreweaster.ddd</groupId>
-        <version>0.3.9-hozah-6-SNAPSHOT</version>
+        <version>0.3.9-hozah.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>kestrel-opentelemetry-metrics</artifactId>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>com.dreweaster.ddd</groupId>
             <artifactId>kestrel-inmemory-backend</artifactId>
-            <version>0.3.9-hozah-6-SNAPSHOT</version>
+            <version>0.3.9-hozah.6-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
