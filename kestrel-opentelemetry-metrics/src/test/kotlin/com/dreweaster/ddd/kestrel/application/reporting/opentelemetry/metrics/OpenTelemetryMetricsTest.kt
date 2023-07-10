@@ -328,7 +328,7 @@ class OpenTelemetryMetricsTest : WordSpec({
         "publish the correct metrics" {
             eventually(1.hours) {
                 val responseBody =
-                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:9464/metrics").build())
+                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
                         .get().responseBody
 
                 responseBody shouldContain "max_offset_events_total"
