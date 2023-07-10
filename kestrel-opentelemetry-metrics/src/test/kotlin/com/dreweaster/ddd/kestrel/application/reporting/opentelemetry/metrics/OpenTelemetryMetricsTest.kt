@@ -284,7 +284,7 @@ class OpenTelemetryMetricsTest : WordSpec({
 
             eventually(1.hours) {
                 val responseBody =
-                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:9464/metrics").build())
+                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
                         .get().responseBody
 
                 responseBody shouldContain "aggregate_persist_events_total"
