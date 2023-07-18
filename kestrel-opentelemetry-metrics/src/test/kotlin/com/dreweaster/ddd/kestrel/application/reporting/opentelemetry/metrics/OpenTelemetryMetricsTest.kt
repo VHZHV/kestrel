@@ -53,7 +53,7 @@ import org.asynchttpclient.RequestBuilder
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.Executors
-import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 class EventWriteService(val domainModel: DomainModel) {
 
@@ -282,7 +282,7 @@ class OpenTelemetryMetricsTest : WordSpec({
         }
         "publish the correct metrics" {
 
-            eventually(1.hours) {
+            eventually(1.minutes) {
                 val responseBody =
                     httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
                         .get().responseBody
@@ -326,17 +326,17 @@ class OpenTelemetryMetricsTest : WordSpec({
             writeservice.doA("2")
         }
         "publish the correct metrics" {
-            eventually(1.hours) {
+            eventually(1.minutes) {
                 val responseBody =
                     httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
                         .get().responseBody
 
-                responseBody shouldContain "max_offset_events_total"
+                responseBody shouldContain "max_offset_events"
                 responseBody shouldContain "event_handled_total"
                 responseBody shouldContain "offset_retrievals_total"
                 responseBody shouldContain "consumption_attempted_total"
                 responseBody shouldContain "offset_stores_total"
-                responseBody shouldContain "current_offset_latest_events_total"
+                responseBody shouldContain "current_offset_latest_events"
             }
         }
     }
