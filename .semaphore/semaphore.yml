@@ -14,27 +14,25 @@ fail_fast:
     when: "true"
 
 global_job_config:
-  env_vars:
-    - name: CLOUDSDK_CORE_PROJECT
-      value: hozah-permits
-  secrets:
-    - name: Permits cloud build key
   prologue:
     commands:
-      - gcloud auth activate-service-account --key-file=.cloud-build.key
+      - sem-version java 17
       - checkout
 
 blocks:
-  - name: Build
+  - name: Test
     task:
       jobs:
-        - name: Build
+        - name: Verify
           commands:
-            - substitutions=""
-            - substitutions+="TAG_NAME=${SEMAPHORE_GIT_TAG_NAME:-0.${SEMAPHORE_GIT_PR_NUMBER}.0}"
-            - substitutions+=",BRANCH_NAME=kestrel.$(echo
-              "${SEMAPHORE_GIT_PR_BRANCH:-master}" | tr '/' '.')"
-            - substitutions+=",SHORT_SHA=${SEMAPHORE_GIT_PR_SHA:-${SEMAPHORE_GIT_SHA}}"
-
-            - gcloud builds submit --config=./cloudbuild_test.yaml
-              --substitutions="${substitutions}"
+            - ./mvnw --threads=1.5C verify
+      epilogue:
+        always:
+          commands:
+            - test-results publish **/target/surefire-reports/*.xml
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Test Results
+        commands:
+          - test-results gen-pipeline-report
