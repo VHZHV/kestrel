@@ -222,7 +222,7 @@ val httpClient = DefaultAsyncHttpClient()
 val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformerV2 {
     override fun getName(): String = "producing-events"
 
-    override fun transform(var1: Response, var2: ServeEvent): Response {
+    override fun transform(resp: Response, event: ServeEvent): Response {
         val params = listOf(
             "tags",
             "after_timestamp",
@@ -230,7 +230,7 @@ val configuration = WireMockConfiguration().port(8080).extensions(object : Respo
             "batch_size",
         ).mapNotNull {
             try {
-                it to var2.request.queryParameter(it).values()
+                it to event.request.queryParameter(it).values()
             } catch (e: Exception) {
                 null
             }
