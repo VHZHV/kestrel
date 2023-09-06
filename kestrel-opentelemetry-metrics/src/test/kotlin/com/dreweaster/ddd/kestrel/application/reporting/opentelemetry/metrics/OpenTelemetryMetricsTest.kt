@@ -48,12 +48,11 @@ import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.resources.Resource
 import org.asynchttpclient.DefaultAsyncHttpClient
 import org.asynchttpclient.RequestBuilder
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.minutes
 
-class EventWriteService(val domainModel: DomainModel) {
+class EventWriteService(private val domainModel: DomainModel) {
 
     suspend fun doA(id: String): CommandHandlingResult<Event> {
         return domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
@@ -68,8 +67,8 @@ sealed interface Event : DomainEvent {
     override val tag: DomainEventTag
         get() = Companion.tag
 
-    object A : Event
-    object B : Event
+    data object A : Event
+    data object B : Event
 
     companion object {
         val tag = DomainEventTag("public")
@@ -77,13 +76,13 @@ sealed interface Event : DomainEvent {
 }
 
 sealed interface Command : DomainCommand {
-    object A : Command
-    object B : Command
+    data object A : Command
+    data object B : Command
 }
 
 sealed interface State : AggregateState {
-    object A : State
-    object B : State
+    data object A : State
+    data object B : State
 }
 
 object Cycle : Aggregate<Command, Event, State> {
@@ -121,13 +120,10 @@ class CycleEventConsumer(
     boundedContexts: BoundedContextEventStreamSources,
 ) : StatelessEventConsumer(boundedContexts) {
 
-    private val logger = LoggerFactory.getLogger(this::class.java)
-    val events = mutableListOf<Event>()
-
-    val mockServer = WireMockServer()
+    private val events = mutableListOf<Event>()
 
     init {
-
+        WireMockServer()
         consumer {
             subscribe(
                 context = ProducingConsumingBoundedContext,
@@ -151,7 +147,7 @@ object ConfA : JsonEventMappingConfigurer<DomainEvent> {
             .mappingFunctions(serialise, deserialise)
     }
 
-    val serialise: (DomainEvent) -> JsonObject = { JsonObject() }
+    private val serialise: (DomainEvent) -> JsonObject = { JsonObject() }
     val deserialise: (JsonObject) -> Event.A = { Event.A }
 }
 
@@ -161,28 +157,28 @@ object ConfB : JsonEventMappingConfigurer<DomainEvent> {
             .mappingFunctions(serialise, deserialise)
     }
 
-    val serialise: (DomainEvent) -> JsonObject = { JsonObject() }
+    private val serialise: (DomainEvent) -> JsonObject = { JsonObject() }
     val deserialise: (JsonObject) -> Event.B = { Event.B }
 }
 
-val eventPayloadMapper: EventPayloadMapper = JsonEventPayloadMapper(Gson(), listOf(ConfA, ConfB))
-val backend = InMemoryBackend().also { be ->
+private val eventPayloadMapper: EventPayloadMapper = JsonEventPayloadMapper(Gson(), listOf(ConfA, ConfB))
+private val backend = InMemoryBackend().also { be ->
     be.streamer = SerialiseInMemoryEventStreamHandler(eventPayloadMapper) {
         be.events
     }
 }
-val domain = EventSourcedDomainModel(backend, TwentyFourHourWindowCommandDeduplication)
-val writeservice = EventWriteService(domain)
-val producer = BoundedContextHttpJsonEventStreamProducer(backend)
-val port = 9464
-val prometheusHttpServer = PrometheusHttpServer.builder().setPort(port).build()
-val resource = Resource.getDefault()
-val meterProvider = SdkMeterProvider.builder()
+private val domain = EventSourcedDomainModel(backend, TwentyFourHourWindowCommandDeduplication)
+private val writeService = EventWriteService(domain)
+private val producer = BoundedContextHttpJsonEventStreamProducer(backend)
+private const val port = 9464
+private val prometheusHttpServer = PrometheusHttpServer.builder().setPort(port).build()
+private val resource = Resource.getDefault()
+private val meterProvider = SdkMeterProvider.builder()
     .setResource(resource)
     .registerMetricReader(prometheusHttpServer)
     .build()
 
-val openTelemetry = OpenTelemetrySdk.builder()
+private val openTelemetry = OpenTelemetrySdk.builder()
     .setMeterProvider(
         meterProvider,
     ).build()
@@ -203,7 +199,7 @@ val eventStreamFactory = object : BoundedContextHttpEventStreamSourceFactory(Pro
     }
 }
 
-val config = object : BoundedContextHttpEventStreamSourceConfiguration {
+private val config = object : BoundedContextHttpEventStreamSourceConfiguration {
     override val producerEndpointProtocol: String = "http"
 
     override val producerEndpointHostname: String = "localhost"
@@ -217,9 +213,9 @@ val config = object : BoundedContextHttpEventStreamSourceConfiguration {
 
     override fun enabled(subscriptionName: String): Boolean = true
 }
-val httpClient = DefaultAsyncHttpClient()
+private val httpClient = DefaultAsyncHttpClient()
 
-val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformerV2 {
+private val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformerV2 {
     override fun getName(): String = "producing-events"
 
     override fun transform(resp: Response, event: ServeEvent): Response {
@@ -273,10 +269,10 @@ class OpenTelemetryMetricsTest : WordSpec({
     "domain metrics publication" should {
 
         beforeTest {
-            writeservice.doA("1")
-            writeservice.doB("1")
-            writeservice.doA("2")
-            writeservice.doA("2")
+            writeService.doA("1")
+            writeService.doB("1")
+            writeService.doA("2")
+            writeService.doA("2")
         }
         "publish the correct metrics" {
 
@@ -318,10 +314,10 @@ class OpenTelemetryMetricsTest : WordSpec({
 
             CycleEventConsumer(sources)
 
-            writeservice.doA("1")
-            writeservice.doB("1")
-            writeservice.doA("2")
-            writeservice.doA("2")
+            writeService.doA("1")
+            writeService.doB("1")
+            writeService.doA("2")
+            writeService.doA("2")
         }
         "publish the correct metrics" {
             eventually(1.minutes) {
