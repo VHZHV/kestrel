@@ -7,7 +7,7 @@
 
     <groupId>com.dreweaster.ddd</groupId>
     <artifactId>kestrel</artifactId>
-    <version>0.3.9-hozah.8-SNAPSHOT</version>
+    <version>0.3.9-hozah.8</version>
     <modules>
         <module>kestrel-core</module>
         <module>kestrel-example</module>
@@ -24,7 +24,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <kotlin.version>1.9.0</kotlin.version>
+        <kotlin.version>1.9.10</kotlin.version>
         <slf4j.version>1.7.36</slf4j.version>
 
         <bintray.subject>dreweaster</bintray.subject>
@@ -52,7 +52,7 @@
             <dependency>
                 <groupId>org.jetbrains.kotlinx</groupId>
                 <artifactId>kotlinx-coroutines-bom</artifactId>
-                <version>1.7.2</version>
+                <version>1.7.3</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -60,7 +60,7 @@
             <dependency>
                 <groupId>org.jetbrains.exposed</groupId>
                 <artifactId>exposed-bom</artifactId>
-                <version>0.41.1</version>
+                <version>0.43.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -77,6 +77,12 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <!-- https://mvnrepository.com/artifact/io.vavr/vavr -->
@@ -103,6 +109,29 @@
                 <artifactId>gson</artifactId>
                 <version>2.10.1</version>
             </dependency>
+
+            <!--
+                 Security
+            -->
+            <!-- https://mvnrepository.com/artifact/io.netty/netty-codec-http -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.1.97.Final</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>32.1.2-jre</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/junit/junit -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.13.2</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -150,6 +179,12 @@
                                 <goal>compile</goal>
                             </goals>
                         </execution>
+                        <execution>
+                            <id>test-compile</id>
+                            <goals>
+                                <goal>test-compile</goal>
+                            </goals>
+                        </execution>
                     </executions>
                 </plugin>
                 <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-source-plugin -->
@@ -171,7 +206,7 @@
                 <plugin>
                     <groupId>com.github.gantsign.maven</groupId>
                     <artifactId>ktlint-maven-plugin</artifactId>
-                    <version>1.16.0</version>
+                    <version>2.0.0</version>
                     <executions>
                         <execution>
                             <id>format-and-check</id>
@@ -181,12 +216,6 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>
-                <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-resources-plugin -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.1</version>
                 </plugin>
             </plugins>
         </pluginManagement>

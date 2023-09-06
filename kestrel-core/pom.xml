@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.dreweaster.ddd</groupId>
         <artifactId>kestrel</artifactId>
-        <version>0.3.9-hozah.8-SNAPSHOT</version>
+        <version>0.3.9-hozah.8</version>
     </parent>
 
     <artifactId>kestrel-core</artifactId>
@@ -44,14 +44,6 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>com.github.gantsign.maven</groupId>
