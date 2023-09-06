@@ -18,7 +18,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.28.0</version>
+                <version>1.29.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -26,15 +26,15 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom-alpha</artifactId>
-                <version>1.28.0-alpha</version>
+                <version>1.29.0-alpha</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- https://central.sonatype.com/artifact/io.kotest/kotest-bom/5.6.2 -->
+            <!-- https://central.sonatype.com/artifact/io.kotest/kotest-bom -->
             <dependency>
                 <groupId>io.kotest</groupId>
                 <artifactId>kotest-bom</artifactId>
-                <version>5.6.2</version>
+                <version>5.7.2</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-standalone</artifactId>
-            <version>2.27.2</version>
+            <version>3.0.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -108,7 +108,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>1.7.36</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
