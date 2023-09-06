@@ -32,15 +32,13 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
-import com.github.tomakehurst.wiremock.common.FileSource
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
-import com.github.tomakehurst.wiremock.extension.Parameters
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer
-import com.github.tomakehurst.wiremock.http.Request
+import com.github.tomakehurst.wiremock.extension.ResponseTransformerV2
 import com.github.tomakehurst.wiremock.http.Response
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import io.kotest.assertions.timing.eventually
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
@@ -221,10 +219,10 @@ val config = object : BoundedContextHttpEventStreamSourceConfiguration {
 }
 val httpClient = DefaultAsyncHttpClient()
 
-val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformer() {
+val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformerV2 {
     override fun getName(): String = "producing-events"
 
-    override fun transform(req: Request, res: Response, p2: FileSource?, p3: Parameters?): Response {
+    override fun transform(resp: Response, event: ServeEvent): Response {
         val params = listOf(
             "tags",
             "after_timestamp",
@@ -232,7 +230,7 @@ val configuration = WireMockConfiguration().port(8080).extensions(object : Respo
             "batch_size",
         ).mapNotNull {
             try {
-                it to req.queryParameter(it).values()
+                it to event.request.queryParameter(it).values()
             } catch (e: Exception) {
                 null
             }
