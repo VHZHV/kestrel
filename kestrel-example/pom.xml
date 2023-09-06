@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.dreweaster.ddd</groupId>
         <artifactId>kestrel</artifactId>
-        <version>0.3.9-hozah.8-SNAPSHOT</version>
+        <version>0.3.9-hozah.8</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,7 +29,7 @@
             <dependency>
                 <groupId>io.ktor</groupId>
                 <artifactId>ktor-bom</artifactId>
-                <version>2.3.2</version>
+                <version>2.3.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>1.4.8</version>
+            <version>1.4.11</version>
         </dependency>
         <dependency>
             <groupId>com.github.salomonbrys.kotson</groupId>
@@ -122,7 +122,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>9.20.0</version>
+            <version>9.22.0</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.exposed</groupId>
@@ -157,7 +157,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -176,10 +175,6 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
             <plugin>
@@ -219,10 +214,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>com.github.gantsign.maven</groupId>
