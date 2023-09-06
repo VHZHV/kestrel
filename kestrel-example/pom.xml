@@ -176,10 +176,6 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
             <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -218,10 +214,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>com.github.gantsign.maven</groupId>
