@@ -110,8 +110,8 @@ class UpsertStatement<Key : Any>(
 ) :
     InsertStatement<Key>(table, false) {
 
-    override fun prepareSQL(transaction: Transaction) = buildString {
-        append(super.prepareSQL(transaction))
+    override fun prepareSQL(transaction: Transaction, prepared: Boolean): String = buildString {
+        append(super.prepareSQL(transaction, prepared))
         append(" ")
         append(conflictTarget.toSql())
         append(" DO UPDATE SET ")
@@ -134,8 +134,8 @@ class UpsertStatement<Key : Any>(
 class InsertOnConflictDoNothingStatement<Key : Any>(table: Table, private val conflictTarget: ConflictTarget) :
     InsertStatement<Key>(table, false) {
 
-    override fun prepareSQL(transaction: Transaction) = buildString {
-        append(super.prepareSQL(transaction))
+    override fun prepareSQL(transaction: Transaction, prepared: Boolean): String = buildString {
+        append(super.prepareSQL(transaction, prepared))
         append(" ")
         append(conflictTarget.toSql())
         append(" DO NOTHING")
