@@ -7,7 +7,7 @@
 
     <groupId>com.dreweaster.ddd</groupId>
     <artifactId>kestrel</artifactId>
-    <version>0.3.9-hozah.8</version>
+    <version>0.3.9-hozah.9-SNAPSHOT</version>
     <modules>
         <module>kestrel-core</module>
         <module>kestrel-example</module>
