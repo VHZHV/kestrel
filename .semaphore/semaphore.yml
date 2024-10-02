@@ -24,7 +24,6 @@ blocks:
           commands:
             - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
             - wait
-            - ls -la
 
             - cd "${REPO_NAME}"
 
@@ -32,8 +31,12 @@ blocks:
       epilogue:
         always:
           commands:
-            - test-results publish **/target/surefire-reports/*.xml
-            - (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
+            - |-
+              if [[ "$SEMAPHORE_JOB_NAME" = "Gradle" ]]; then
+                test-results publish **/target/surefire-reports/*.xml &
+                (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
+                wait
+              fi
 after_pipeline:
   task:
     jobs:
