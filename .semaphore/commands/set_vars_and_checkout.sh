@@ -7,4 +7,5 @@ export BRANCH_NAME="${SEMAPHORE_GIT_WORKING_BRANCH:-"${MAIN_BRANCH}"}"
 
 sem-version java 17
 
+checkout
 (while ! checkout; do :; done) &
