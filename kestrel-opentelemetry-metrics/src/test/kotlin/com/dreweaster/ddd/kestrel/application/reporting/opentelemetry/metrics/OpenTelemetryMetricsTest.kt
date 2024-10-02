@@ -174,8 +174,8 @@ private val backend =
 private val domain = EventSourcedDomainModel(backend, TwentyFourHourWindowCommandDeduplication)
 private val writeService = EventWriteService(domain)
 private val producer = BoundedContextHttpJsonEventStreamProducer(backend)
-private const val port = 9464
-private val prometheusHttpServer = PrometheusHttpServer.builder().setPort(port).build()
+private const val PORT = 9464
+private val prometheusHttpServer = PrometheusHttpServer.builder().setPort(PORT).build()
 private val resource = Resource.getDefault()
 private val meterProvider =
     SdkMeterProvider
@@ -299,7 +299,7 @@ class OpenTelemetryMetricsTest :
                 eventually(1.minutes) {
                     val responseBody =
                         httpClient
-                            .executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
+                            .executeRequest(RequestBuilder().setUrl("http://localhost:$PORT/metrics").build())
                             .get()
                             .responseBody
 
@@ -348,7 +348,7 @@ class OpenTelemetryMetricsTest :
                 eventually(1.minutes) {
                     val responseBody =
                         httpClient
-                            .executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
+                            .executeRequest(RequestBuilder().setUrl("http://localhost:$PORT/metrics").build())
                             .get()
                             .responseBody
 
