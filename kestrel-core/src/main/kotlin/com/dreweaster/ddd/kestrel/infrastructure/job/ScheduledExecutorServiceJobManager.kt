@@ -14,10 +14,12 @@ class ScheduledExecutorServiceJobManager(
     private val clusterManager: ClusterManager,
     private val scheduler: ScheduledExecutorService,
 ) : JobManager {
-
     private val logger = LoggerFactory.getLogger(ScheduledExecutorServiceJobManager::class.java)
 
-    override fun scheduleManyTimes(repeatSchedule: Duration, job: Job) {
+    override fun scheduleManyTimes(
+        repeatSchedule: Duration,
+        job: Job,
+    ) {
         logger.debug("Scheduling job: '${job.name}'")
         // It's okay to block waiting for a future result as we're using a dedicated job execution context
         // It's important that we wait for a job to complete execution
@@ -41,7 +43,9 @@ class ScheduledExecutorServiceJobManager(
         )
     }
 
-    inner class ClusterSingletonJobWrapper(private val wrappedJob: Job) : Job {
+    inner class ClusterSingletonJobWrapper(
+        private val wrappedJob: Job,
+    ) : Job {
         override val name = wrappedJob.name
 
         override suspend fun execute() {

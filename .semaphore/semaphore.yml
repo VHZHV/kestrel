@@ -4,7 +4,6 @@ name: Build
 agent:
   machine:
     type: e1-standard-2
-    os_image: ubuntu2004
 
 auto_cancel:
   queued:
@@ -15,21 +14,26 @@ fail_fast:
 
 global_job_config:
   prologue:
-    commands:
-      - sem-version java 17
-      - checkout
+    commands_file: commands/set_vars_and_checkout.sh
 
 blocks:
-  - name: Test
+  - name: Verify
     task:
       jobs:
-        - name: Verify
+        - name: Maven
           commands:
+            - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
+            - wait
+            - ls -la
+
+            - cd "${REPO_NAME}"
+
             - ./mvnw --threads=1.5C verify
       epilogue:
         always:
           commands:
             - test-results publish **/target/surefire-reports/*.xml
+            - (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
 after_pipeline:
   task:
     jobs:

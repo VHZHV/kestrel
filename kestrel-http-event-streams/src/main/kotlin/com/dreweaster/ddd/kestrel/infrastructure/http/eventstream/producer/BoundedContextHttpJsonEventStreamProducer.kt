@@ -11,14 +11,14 @@ import com.github.salomonbrys.kotson.jsonObject
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
-class BoundedContextHttpJsonEventStreamProducer(private val backend: Backend) {
+class BoundedContextHttpJsonEventStreamProducer(
+    private val backend: Backend,
+) {
+    suspend fun produceFrom(urlQueryParameters: Map<String, List<String>>): JsonObject =
+        convertStreamToJsonResponse(fetchEventStream(HttpJsonEventQuery.from(urlQueryParameters)))
 
-    suspend fun produceFrom(urlQueryParameters: Map<String, List<String>>): JsonObject {
-        return convertStreamToJsonResponse(fetchEventStream(HttpJsonEventQuery.from(urlQueryParameters)))
-    }
-
-    private suspend fun fetchEventStream(query: HttpJsonEventQuery): EventStream {
-        return if (query.afterTimestamp != null) {
+    private suspend fun fetchEventStream(query: HttpJsonEventQuery): EventStream =
+        if (query.afterTimestamp != null) {
             backend.loadEventStream<DomainEvent>(
                 query.tags,
                 query.afterTimestamp,
@@ -31,7 +31,6 @@ class BoundedContextHttpJsonEventStreamProducer(private val backend: Backend) {
                 query.batchSize,
             )
         }
-    }
 
     private fun convertStreamToJsonResponse(stream: EventStream) =
         jsonObject(

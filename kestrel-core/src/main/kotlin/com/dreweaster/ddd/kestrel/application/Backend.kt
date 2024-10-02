@@ -11,7 +11,6 @@ import java.time.Instant
 import kotlin.reflect.KClass
 
 interface Backend {
-
     suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> persistAggregate(
         aggregateType: A,
         aggregateId: AggregateId,
@@ -74,12 +73,20 @@ interface ProcessManagerRetryStrategy {
 }
 
 sealed class ProcessManagerProcessingResult
+
 object Continue : ProcessManagerProcessingResult()
+
 object Finished : ProcessManagerProcessingResult()
+
 object NothingToProcess : ProcessManagerProcessingResult()
+
 object AlreadyProcessed : ProcessManagerProcessingResult()
-data class Failed(val failureCode: String, val message: String? = null, val ex: Throwable?) :
-    ProcessManagerProcessingResult()
+
+data class Failed(
+    val failureCode: String,
+    val message: String? = null,
+    val ex: Throwable?,
+) : ProcessManagerProcessingResult()
 
 data class GeneratedEvents<E : DomainEvent>(
     val events: List<E>,
@@ -139,18 +146,16 @@ data class StreamEvent(
     val payloadContentType: SerialisationContentType,
 )
 
-enum class SerialisationContentType(private val value: String) {
-
+enum class SerialisationContentType(
+    private val value: String,
+) {
     JSON("application/json"),
     ;
 
-    fun value(): String {
-        return value
-    }
+    fun value(): String = value
 }
 
 interface EventPayloadMapper {
-
     fun <E : DomainEvent> deserialiseEvent(
         serialisedPayload: String,
         serialisedEventType: String,
@@ -160,10 +165,13 @@ interface EventPayloadMapper {
     fun <E : DomainEvent> serialiseEvent(event: E): PayloadSerialisationResult
 }
 
-data class PayloadSerialisationResult(val payload: String, val contentType: SerialisationContentType, val version: Int)
+data class PayloadSerialisationResult(
+    val payload: String,
+    val contentType: SerialisationContentType,
+    val version: Int,
+)
 
 open class MappingException : RuntimeException {
-
     constructor(message: String) : super(message)
 
     constructor(message: String, cause: Throwable) : super(message, cause)

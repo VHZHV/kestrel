@@ -8,7 +8,6 @@ import com.github.salomonbrys.kotson.string
 import com.google.gson.JsonObject
 
 object UserRegisteredMapper : JsonEventMappingConfigurer<UserRegistered> {
-
     private val serialiser: (UserRegistered) -> JsonObject = { event ->
         jsonObject(
             "username" to event.username,
@@ -24,7 +23,8 @@ object UserRegisteredMapper : JsonEventMappingConfigurer<UserRegistered> {
     }
 
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<UserRegistered>) {
-        configurationFactory.create(UserRegistered::class.qualifiedName!!)
+        configurationFactory
+            .create(UserRegistered::class.qualifiedName!!)
             .mappingFunctions(serialiser, deserialiser)
     }
 }
