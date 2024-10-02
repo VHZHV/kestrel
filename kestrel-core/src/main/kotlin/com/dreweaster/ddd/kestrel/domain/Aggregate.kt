@@ -5,7 +5,9 @@ import com.dreweaster.ddd.kestrel.application.UnsupportedEventInEdenBehaviour
 import io.vavr.control.Try
 import kotlin.reflect.KClass
 
-data class DomainEventTag(val value: String)
+data class DomainEventTag(
+    val value: String,
+)
 
 interface DomainEvent {
     val tag: DomainEventTag
@@ -16,25 +18,26 @@ interface DomainCommand
 interface AggregateState
 
 interface Aggregate<C : DomainCommand, E : DomainEvent, S : AggregateState> {
-
     val blueprint: AggregateBlueprint<C, E, S>
 
-    fun aggregate(name: String, init: AggregateBlueprint<C, E, S>.() -> Unit): AggregateBlueprint<C, E, S> {
+    fun aggregate(
+        name: String,
+        init: AggregateBlueprint<C, E, S>.() -> Unit,
+    ): AggregateBlueprint<C, E, S> {
         val aggregate = AggregateBlueprint<C, E, S>(name)
         aggregate.init()
         return aggregate
     }
 }
 
-class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>(val name: String) {
-
+class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+    val name: String,
+) {
     var capturedEden: EdenBehaviour<C, E, S>? = null
 
     var capturedBehaviours: Map<KClass<S>, Behaviour<C, E, S, *>> = emptyMap()
 
-    inline fun edenBehaviour(
-        init: EdenBehaviour<C, E, S>.() -> Unit,
-    ): EdenBehaviour<C, E, S> {
+    inline fun edenBehaviour(init: EdenBehaviour<C, E, S>.() -> Unit): EdenBehaviour<C, E, S> {
         val eden = EdenBehaviour<C, E, S>()
         eden.init()
         capturedEden = eden
@@ -49,49 +52,74 @@ class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>
         return behaviour
     }
 
-    val edenEventHandler: EdenEventHandler<E, S> = object : EdenEventHandler<E, S> {
-        override fun canHandle(t: E) = capturedEden?.capturedApply?.capturedHandlers?.get(t::class) != null
+    val edenEventHandler: EdenEventHandler<E, S> =
+        object : EdenEventHandler<E, S> {
+            override fun canHandle(t: E) = capturedEden?.capturedApply?.capturedHandlers?.get(t::class) != null
 
-        override fun invoke(t: E): S {
-            if (!canHandle(t)) throw UnsupportedEventInEdenBehaviour
-            return capturedEden!!.capturedApply!!.capturedHandlers[t::class]!!.invoke(t)
+            override fun invoke(t: E): S {
+                if (!canHandle(t)) throw UnsupportedEventInEdenBehaviour
+                return capturedEden!!.capturedApply!!.capturedHandlers[t::class]!!.invoke(t)
+            }
         }
-    }
 
-    val edenCommandHandler: EdenCommandHandler<C, Try<List<E>>> = object : EdenCommandHandler<C, Try<List<E>>> {
-        override fun canHandle(t: C) = capturedEden?.capturedReceive?.capturedHandlers?.get(t::class) != null
+    val edenCommandHandler: EdenCommandHandler<C, Try<List<E>>> =
+        object : EdenCommandHandler<C, Try<List<E>>> {
+            override fun canHandle(t: C) = capturedEden?.capturedReceive?.capturedHandlers?.get(t::class) != null
 
-        override fun options(t: C) = capturedEden!!.capturedReceive!!.capturedHandlers[t::class]!!.second
+            override fun options(t: C) = capturedEden!!.capturedReceive!!.capturedHandlers[t::class]!!.second
 
-        override fun invoke(t: C): Try<List<E>> {
-            if (!canHandle(t)) throw UnsupportedOperationException()
-            return capturedEden!!.capturedReceive!!.capturedHandlers[t::class]!!.first.invoke(t)
+            override fun invoke(t: C): Try<List<E>> {
+                if (!canHandle(t)) throw UnsupportedOperationException()
+                return capturedEden!!
+                    .capturedReceive!!
+                    .capturedHandlers[t::class]!!
+                    .first
+                    .invoke(t)
+            }
         }
-    }
 
-    val commandHandler: Handler<S, C, Try<List<E>>> = object : Handler<S, C, Try<List<E>>> {
-        override fun canHandle(t1: S, t2: C) =
-            capturedBehaviours[t1::class]?.capturedReceive?.capturedHandlers?.get(t2::class) != null
+    val commandHandler: Handler<S, C, Try<List<E>>> =
+        object : Handler<S, C, Try<List<E>>> {
+            override fun canHandle(
+                t1: S,
+                t2: C,
+            ) = capturedBehaviours[t1::class]?.capturedReceive?.capturedHandlers?.get(t2::class) != null
 
-        override fun invoke(t1: S, t2: C): Try<List<E>> {
-            if (!canHandle(t1, t2)) throw UnsupportedOperationException()
-            return capturedBehaviours[t1::class]?.capturedReceive?.capturedHandlers?.get(t2::class)?.invoke(t1, t2)!!
+            override fun invoke(
+                t1: S,
+                t2: C,
+            ): Try<List<E>> {
+                if (!canHandle(t1, t2)) throw UnsupportedOperationException()
+                return capturedBehaviours[t1::class]
+                    ?.capturedReceive
+                    ?.capturedHandlers
+                    ?.get(t2::class)
+                    ?.invoke(t1, t2)!!
+            }
         }
-    }
 
-    val eventHandler: Handler<S, E, S> = object : Handler<S, E, S> {
-        override fun canHandle(t1: S, t2: E) =
-            capturedBehaviours[t1::class]?.capturedApply?.capturedHandlers?.get(t2::class) != null
+    val eventHandler: Handler<S, E, S> =
+        object : Handler<S, E, S> {
+            override fun canHandle(
+                t1: S,
+                t2: E,
+            ) = capturedBehaviours[t1::class]?.capturedApply?.capturedHandlers?.get(t2::class) != null
 
-        override fun invoke(t1: S, t2: E): S {
-            if (!canHandle(t1, t2)) throw UnsupportedEventInCurrentBehaviour
-            return capturedBehaviours[t1::class]?.capturedApply?.capturedHandlers?.get(t2::class)?.invoke(t1, t2)!!
+            override fun invoke(
+                t1: S,
+                t2: E,
+            ): S {
+                if (!canHandle(t1, t2)) throw UnsupportedEventInCurrentBehaviour
+                return capturedBehaviours[t1::class]
+                    ?.capturedApply
+                    ?.capturedHandlers
+                    ?.get(t2::class)
+                    ?.invoke(t1, t2)!!
+            }
         }
-    }
 }
 
 class EdenBehaviour<C : DomainCommand, E : DomainEvent, S : AggregateState> {
-
     var capturedReceive: EdenReceive<C, E>? = null
 
     var capturedApply: EdenApply<E, S>? = null
@@ -111,10 +139,11 @@ class EdenBehaviour<C : DomainCommand, E : DomainEvent, S : AggregateState> {
     }
 }
 
-data class EdenCommandOptions(val allowInAllBehaviours: Boolean)
+data class EdenCommandOptions(
+    val allowInAllBehaviours: Boolean,
+)
 
 class EdenReceive<C : DomainCommand, E : DomainEvent> {
-
     var capturedHandlers: Map<KClass<C>, Pair<(C) -> Try<List<E>>, EdenCommandOptions>> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -122,23 +151,19 @@ class EdenReceive<C : DomainCommand, E : DomainEvent> {
         allowInAllBehaviours: Boolean = false,
         noinline handler: (Cmd) -> Try<List<E>>,
     ) {
-        capturedHandlers += Cmd::class as KClass<C> to Pair(
-            handler as (C) -> Try<List<E>>,
-            EdenCommandOptions(allowInAllBehaviours),
-        )
+        capturedHandlers += Cmd::class as KClass<C> to
+            Pair(
+                handler as (C) -> Try<List<E>>,
+                EdenCommandOptions(allowInAllBehaviours),
+            )
     }
 
-    fun <Evt : E> accept(vararg event: Evt): Try<List<Evt>> {
-        return Try.success(event.toList())
-    }
+    fun <Evt : E> accept(vararg event: Evt): Try<List<Evt>> = Try.success(event.toList())
 
-    fun <Evt : E> reject(error: Throwable): Try<List<Evt>> {
-        return Try.failure(error)
-    }
+    fun <Evt : E> reject(error: Throwable): Try<List<Evt>> = Try.failure(error)
 }
 
 class EdenApply<E : DomainEvent, S : AggregateState> {
-
     var capturedHandlers: Map<KClass<E>, ((E) -> S)> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -148,7 +173,6 @@ class EdenApply<E : DomainEvent, S : AggregateState> {
 }
 
 class Behaviour<C : DomainCommand, E : DomainEvent, S : AggregateState, State : S> {
-
     var capturedReceive: Receive<C, E, S, State>? = null
 
     var capturedApply: Apply<E, S, State>? = null
@@ -169,7 +193,6 @@ class Behaviour<C : DomainCommand, E : DomainEvent, S : AggregateState, State : 
 }
 
 class Receive<C : DomainCommand, E : DomainEvent, S : AggregateState, out State : S> {
-
     var capturedHandlers: Map<KClass<C>, ((S, C) -> Try<List<E>>)> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -177,17 +200,12 @@ class Receive<C : DomainCommand, E : DomainEvent, S : AggregateState, out State 
         capturedHandlers += Cmd::class as KClass<C> to handler as (S, C) -> Try<List<E>>
     }
 
-    fun accept(vararg event: E): Try<List<E>> {
-        return Try.success(event.toList())
-    }
+    fun accept(vararg event: E): Try<List<E>> = Try.success(event.toList())
 
-    fun reject(error: Throwable): Try<List<E>> {
-        return Try.failure(error)
-    }
+    fun reject(error: Throwable): Try<List<E>> = Try.failure(error)
 }
 
 class Apply<E : DomainEvent, S : AggregateState, out State : S> {
-
     var capturedHandlers: Map<KClass<E>, ((S, E) -> S)> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -197,17 +215,27 @@ class Apply<E : DomainEvent, S : AggregateState, out State : S> {
 }
 
 interface Handler<T1, T2, R> {
-    fun canHandle(t1: T1, t2: T2): Boolean
-    operator fun invoke(t1: T1, t2: T2): R
+    fun canHandle(
+        t1: T1,
+        t2: T2,
+    ): Boolean
+
+    operator fun invoke(
+        t1: T1,
+        t2: T2,
+    ): R
 }
 
 interface EdenEventHandler<T, R> {
     fun canHandle(t: T): Boolean
+
     operator fun invoke(t: T): R
 }
 
 interface EdenCommandHandler<T, R> {
     fun canHandle(t: T): Boolean
+
     fun options(t: T): EdenCommandOptions
+
     operator fun invoke(t: T): R
 }

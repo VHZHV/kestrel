@@ -45,9 +45,12 @@ import org.asynchttpclient.DefaultAsyncHttpClient
 import java.time.Duration
 import java.util.concurrent.Executors
 
-class ExampleModule(val application: Application) : AbstractModule() {
-
-    inner class SynchronousJdbcReadModelBinder(val binder: Binder) {
+class ExampleModule(
+    val application: Application,
+) : AbstractModule() {
+    inner class SynchronousJdbcReadModelBinder(
+        val binder: Binder,
+    ) {
         val readModelsBinder: Multibinder<SynchronousJdbcReadModel> =
             Multibinder.newSetBinder(binder(), SynchronousJdbcReadModel::class.java)
 
@@ -81,18 +84,15 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
     @Singleton
     @Provides
-    fun jobManager(clusterManager: ClusterManager): JobManager {
-        return ScheduledExecutorServiceJobManager(
+    fun jobManager(clusterManager: ClusterManager): JobManager =
+        ScheduledExecutorServiceJobManager(
             clusterManager = clusterManager,
             scheduler = Executors.newSingleThreadScheduledExecutor(),
         )
-    }
 
     @Singleton
     @Provides
-    fun offsetManager(database: Database): OffsetManager {
-        return PostgresOffsetManager(database)
-    }
+    fun offsetManager(database: Database): OffsetManager = PostgresOffsetManager(database)
 
     @Singleton
     @Provides
@@ -113,13 +113,14 @@ class ExampleModule(val application: Application) : AbstractModule() {
         val streamSourceFactories = listOf(UserContextHttpEventStreamSourceFactory)
         return BoundedContextEventStreamSources(
             streamSourceFactories.map {
-                it.name to it.createHttpEventStreamSource(
-                    httpClient = asyncHttpClient,
-                    configuration = createHttpEventStreamSourceConfiguration(it.name, config),
-                    jobManager = jobManager,
-                    offsetManager = offsetManager,
-                )
-                    .addReporter(com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.reporting.ConsoleReporter)
+                it.name to
+                    it
+                        .createHttpEventStreamSource(
+                            httpClient = asyncHttpClient,
+                            configuration = createHttpEventStreamSourceConfiguration(it.name, config),
+                            jobManager = jobManager,
+                            offsetManager = offsetManager,
+                        ).addReporter(com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.reporting.ConsoleReporter)
             },
         )
     }
@@ -147,16 +148,17 @@ class ExampleModule(val application: Application) : AbstractModule() {
         synchronousJdbcReadModels: Set<SynchronousJdbcReadModel>,
     ): Backend {
         @Suppress("UNCHECKED_CAST")
-        val payloadMapper = JsonEventPayloadMapper(
-            Gson(),
-            listOf(
-                UserRegisteredMapper,
-                UsernameChangedMapper,
-                PasswordChangedMapper,
-                FailedLoginAttemptsIncrementedMapper,
-                UserLockedMapper,
-            ) as List<JsonEventMappingConfigurer<DomainEvent>>,
-        )
+        val payloadMapper =
+            JsonEventPayloadMapper(
+                Gson(),
+                listOf(
+                    UserRegisteredMapper,
+                    UsernameChangedMapper,
+                    PasswordChangedMapper,
+                    FailedLoginAttemptsIncrementedMapper,
+                    UserLockedMapper,
+                ) as List<JsonEventMappingConfigurer<DomainEvent>>,
+            )
 
         return PostgresBackend(database, payloadMapper, synchronousJdbcReadModels.toList())
     }
@@ -164,9 +166,8 @@ class ExampleModule(val application: Application) : AbstractModule() {
     private fun createHttpEventStreamSourceConfiguration(
         context: BoundedContextName,
         config: ApplicationConfig,
-    ): BoundedContextHttpEventStreamSourceConfiguration {
-        return object : BoundedContextHttpEventStreamSourceConfiguration {
-
+    ): BoundedContextHttpEventStreamSourceConfiguration =
+        object : BoundedContextHttpEventStreamSourceConfiguration {
             override val producerEndpointProtocol = config.property("contexts.${context.name}.protocol").getString()
 
             override val producerEndpointHostname = config.property("contexts.${context.name}.host").getString()
@@ -176,17 +177,23 @@ class ExampleModule(val application: Application) : AbstractModule() {
             override val producerEndpointPath = config.property("contexts.${context.name}.path").getString()
 
             override fun batchSizeFor(subscriptionName: String) =
-                config.property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size").getString()
+                config
+                    .property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size")
+                    .getString()
                     .toInt()
 
-            override fun repeatScheduleFor(subscriptionName: String) = Duration.ofMillis(
-                config.property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule").getString()
-                    .toLong(),
-            )
+            override fun repeatScheduleFor(subscriptionName: String) =
+                Duration.ofMillis(
+                    config
+                        .property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule")
+                        .getString()
+                        .toLong(),
+                )
 
             override fun enabled(subscriptionName: String) =
-                config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
+                config
+                    .propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")
+                    ?.getString()
                     ?.toBoolean() ?: true
         }
-    }
 }

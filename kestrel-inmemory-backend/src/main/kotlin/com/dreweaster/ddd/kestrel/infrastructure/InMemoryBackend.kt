@@ -46,53 +46,51 @@ object UnsupportedOperationInMemoryEventStreamHandler : InMemoryEventStreamHandl
         tags: Set<DomainEventTag>,
         afterOffset: Long,
         batchSize: Int,
-    ): EventStream {
-        throw UnsupportedOperationException()
-    }
+    ): EventStream = throw UnsupportedOperationException()
 
     override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
         batchSize: Int,
-    ): EventStream {
-        throw UnsupportedOperationException()
-    }
+    ): EventStream = throw UnsupportedOperationException()
 }
 
 class SerialiseInMemoryEventStreamHandler(
     private val mapping: EventPayloadMapper,
     private val events: () -> List<Pair<PersistedEvent<*>, Long>>,
 ) : InMemoryEventStreamHandler {
-
     private fun retrieveEvents(
         tags: Set<DomainEventTag>,
         batchSize: Int,
         filter: (Pair<PersistedEvent<*>, Long>) -> Boolean,
     ): EventStream {
-        val matching = events().filter {
-            tags.contains(it.first.rawEvent.tag)
-        }
+        val matching =
+            events().filter {
+                tags.contains(it.first.rawEvent.tag)
+            }
         val maxOffset = matching.lastOrNull()?.second ?: 1L
 
-        val window = matching.filter(filter)
-            .take(batchSize)
-            .map { (event, offset) ->
-                val mapped = mapping.serialiseEvent(event.rawEvent)
-                StreamEvent(
-                    offset,
-                    event.id,
-                    event.aggregateType.blueprint.name,
-                    event.aggregateId,
-                    event.causationId,
-                    event.correlationId,
-                    event.eventType.qualifiedName!!,
-                    event.rawEvent.tag,
-                    event.timestamp,
-                    event.sequenceNumber,
-                    mapped.payload,
-                    mapped.contentType,
-                )
-            }
+        val window =
+            matching
+                .filter(filter)
+                .take(batchSize)
+                .map { (event, offset) ->
+                    val mapped = mapping.serialiseEvent(event.rawEvent)
+                    StreamEvent(
+                        offset,
+                        event.id,
+                        event.aggregateType.blueprint.name,
+                        event.aggregateId,
+                        event.causationId,
+                        event.correlationId,
+                        event.eventType.qualifiedName!!,
+                        event.rawEvent.tag,
+                        event.timestamp,
+                        event.sequenceNumber,
+                        mapped.payload,
+                        mapped.contentType,
+                    )
+                }
 
         return EventStream(
             events = window,
@@ -108,21 +106,22 @@ class SerialiseInMemoryEventStreamHandler(
         tags: Set<DomainEventTag>,
         afterOffset: Long,
         batchSize: Int,
-    ): EventStream = retrieveEvents(tags, batchSize) {
-        it.second > afterOffset
-    }
+    ): EventStream =
+        retrieveEvents(tags, batchSize) {
+            it.second > afterOffset
+        }
 
     override suspend fun loadEventStream(
         tags: Set<DomainEventTag>,
         afterInstant: Instant,
         batchSize: Int,
-    ): EventStream = retrieveEvents(tags, batchSize) {
-        it.first.timestamp > afterInstant
-    }
+    ): EventStream =
+        retrieveEvents(tags, batchSize) {
+            it.first.timestamp > afterInstant
+        }
 }
 
 open class InMemoryBackend : Backend {
-
     var streamer: InMemoryEventStreamHandler = UnsupportedOperationInMemoryEventStreamHandler
     private var nextOffset: Long = 0L
 
@@ -144,17 +143,13 @@ open class InMemoryBackend : Backend {
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
         aggregateId: AggregateId,
-    ): List<PersistedEvent<E>> {
-        return persistedEventsFor(aggregateType, aggregateId)
-    }
+    ): List<PersistedEvent<E>> = persistedEventsFor(aggregateType, aggregateId)
 
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
         aggregateId: AggregateId,
         afterSequenceNumber: Long,
-    ): List<PersistedEvent<E>> {
-        return persistedEventsFor(aggregateType, aggregateId).filter { it.sequenceNumber > afterSequenceNumber }
-    }
+    ): List<PersistedEvent<E>> = persistedEventsFor(aggregateType, aggregateId).filter { it.sequenceNumber > afterSequenceNumber }
 
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> saveEvents(
         aggregateType: A,
@@ -170,24 +165,25 @@ open class InMemoryBackend : Backend {
 
         @Suppress("UNCHECKED_CAST")
         val persistedEvents =
-            rawEvents.fold(Pair<Long, List<PersistedEvent<E>>>(expectedSequenceNumber + 1, emptyList())) { acc, e ->
-                Pair(
-                    acc.first + 1,
-                    acc.second +
-                        PersistedEvent(
-                            EventId(UUID.randomUUID().toString()),
-                            aggregateType,
-                            aggregateId,
-                            causationId,
-                            correlationId,
-                            e::class as KClass<E>,
-                            1,
-                            e,
-                            Instant.now(),
-                            acc.first,
-                        ),
-                )
-            }.second
+            rawEvents
+                .fold(Pair<Long, List<PersistedEvent<E>>>(expectedSequenceNumber + 1, emptyList())) { acc, e ->
+                    Pair(
+                        acc.first + 1,
+                        acc.second +
+                            PersistedEvent(
+                                EventId(UUID.randomUUID().toString()),
+                                aggregateType,
+                                aggregateId,
+                                causationId,
+                                correlationId,
+                                e::class as KClass<E>,
+                                1,
+                                e,
+                                Instant.now(),
+                                acc.first,
+                            ),
+                    )
+                }.second
 
         persistedEvents.forEach { event ->
             events += Pair(event, nextOffset)
@@ -237,19 +233,21 @@ open class InMemoryBackend : Backend {
     private fun <E : DomainEvent> persistedEventsFor(
         aggregateType: Aggregate<*, E, *>,
         aggregateId: AggregateId,
-    ): List<PersistedEvent<E>> {
-        return events.filter { e ->
-            val event = e as Pair<PersistedEvent<E>, Long>
-            event.first.aggregateType == aggregateType && event.first.aggregateId == aggregateId
-        }.map { event -> event.first as PersistedEvent<E> }
-    }
+    ): List<PersistedEvent<E>> =
+        events
+            .filter { e ->
+                val event = e as Pair<PersistedEvent<E>, Long>
+                event.first.aggregateType == aggregateType && event.first.aggregateId == aggregateId
+            }.map { event -> event.first as PersistedEvent<E> }
 
     private fun <E : DomainEvent> aggregateHasBeenModified(
         aggregateType: Aggregate<*, E, *>,
         aggregateId: AggregateId,
         expectedSequenceNumber: Long?,
-    ): Boolean {
-        return persistedEventsFor(aggregateType, aggregateId)
-            .lastOrNull()?.sequenceNumber?.equals(expectedSequenceNumber)?.not() == true
-    }
+    ): Boolean =
+        persistedEventsFor(aggregateType, aggregateId)
+            .lastOrNull()
+            ?.sequenceNumber
+            ?.equals(expectedSequenceNumber)
+            ?.not() == true
 }
