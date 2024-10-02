@@ -8,8 +8,9 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offse
 import com.google.gson.JsonObject
 import org.asynchttpclient.AsyncHttpClient
 
-abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedContextName) {
-
+abstract class BoundedContextHttpEventStreamSourceFactory(
+    val name: BoundedContextName,
+) {
     protected abstract val mappers: EventMappers
 
     fun createHttpEventStreamSource(
@@ -17,21 +18,22 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
         configuration: BoundedContextHttpEventStreamSourceConfiguration,
         offsetManager: OffsetManager,
         jobManager: JobManager,
-    ): BoundedContextHttpEventStreamSource {
-        return BoundedContextHttpEventStreamSource(
+    ): BoundedContextHttpEventStreamSource =
+        BoundedContextHttpEventStreamSource(
             httpClient = httpClient,
             configuration = configuration,
             jobManager = jobManager,
             offsetManager = offsetManager,
             eventMappers = mappers.build(),
         )
-    }
 
     class EventMappers {
-
         private val mappersList: MutableList<HttpJsonEventMapper<*>> = mutableListOf()
 
-        fun tag(tagName: String, init: Tag.() -> Unit): Tag {
+        fun tag(
+            tagName: String,
+            init: Tag.() -> Unit,
+        ): Tag {
             val tag = Tag(DomainEventTag(tagName), mappersList)
             tag.init()
             return tag
@@ -40,8 +42,14 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
         fun build(): List<HttpJsonEventMapper<*>> = mappersList
     }
 
-    class Tag(val tag: DomainEventTag, val mappersList: MutableList<HttpJsonEventMapper<*>>) {
-        inline fun <reified E : DomainEvent> event(sourceEventType: String, noinline handler: (JsonObject) -> E) {
+    class Tag(
+        val tag: DomainEventTag,
+        val mappersList: MutableList<HttpJsonEventMapper<*>>,
+    ) {
+        inline fun <reified E : DomainEvent> event(
+            sourceEventType: String,
+            noinline handler: (JsonObject) -> E,
+        ) {
             mappersList.add(
                 HttpJsonEventMapper(
                     sourceEventType = sourceEventType,

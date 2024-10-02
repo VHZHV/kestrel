@@ -12,7 +12,6 @@ interface ProcessManagerContext
 interface ProcessManagerState
 
 class Suspend : RuntimeException {
-
     private val failureCode: String
 
     constructor (failureCode: String) : super() {
@@ -29,7 +28,6 @@ class Suspend : RuntimeException {
 }
 
 interface ProcessManager<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> {
-
     val blueprint: ProcessManagerBlueprint<C, E, S>
 
     fun processManager(
@@ -48,11 +46,12 @@ class ProcessManagerBlueprint<C : ProcessManagerContext, E : DomainEvent, S : Pr
     val name: String,
     val startWith: S,
 ) {
-
     var capturedBehaviours: Map<KClass<S>, ProcessManagerBehaviour<C, E, S, *>> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
-    inline fun <reified State : S> behaviour(init: ProcessManagerBehaviour<C, E, S, State>.() -> Unit): ProcessManagerBehaviour<C, E, S, State> {
+    inline fun <reified State : S> behaviour(
+        init: ProcessManagerBehaviour<C, E, S, State>.() -> Unit,
+    ): ProcessManagerBehaviour<C, E, S, State> {
         val behaviour = ProcessManagerBehaviour<C, E, S, State>()
         behaviour.init()
         capturedBehaviours += State::class as KClass<S> to behaviour
@@ -61,7 +60,6 @@ class ProcessManagerBlueprint<C : ProcessManagerContext, E : DomainEvent, S : Pr
 }
 
 interface CommandDispatcher {
-
     suspend fun <C : DomainCommand, E : DomainEvent, S : AggregateState> dispatch(
         command: C,
         aggregateType: Aggregate<C, E, S>,
@@ -70,9 +68,11 @@ interface CommandDispatcher {
 }
 
 interface EventScheduler {
-
     // Implementation of this will deliver event straight away
-    suspend fun <Evt : E, E : DomainEvent> schedule(event: Evt, at: Instant): Try<Unit>
+    suspend fun <Evt : E, E : DomainEvent> schedule(
+        event: Evt,
+        at: Instant,
+    ): Try<Unit>
 }
 
 data class SendableCommand<Cmd : ARCommand, ARCommand : DomainCommand, AREvent : DomainEvent, ARState : AggregateState>(
@@ -80,21 +80,21 @@ data class SendableCommand<Cmd : ARCommand, ARCommand : DomainCommand, AREvent :
     val aggregateType: Aggregate<ARCommand, AREvent, ARState>,
     val id: AggregateId,
 ) {
-
     suspend fun sendUsing(dispatcher: CommandDispatcher) {
         dispatcher.dispatch(command, aggregateType, id)
     }
 }
 
-data class SchedulableEvent<Evt : E, E : DomainEvent>(val event: Evt, val at: Instant) {
-
+data class SchedulableEvent<Evt : E, E : DomainEvent>(
+    val event: Evt,
+    val at: Instant,
+) {
     suspend fun scheduleUsing(scheduler: EventScheduler) {
         scheduler.schedule(event, at)
     }
 }
 
 class ProcessManagerBehaviour<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState, State : S> {
-
     var capturedHandlers: Map<KClass<E>, ((C, State, E) -> ProcessManagerStepBuilder<*, C, E, S>)> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -105,49 +105,39 @@ class ProcessManagerBehaviour<C : ProcessManagerContext, E : DomainEvent, S : Pr
     fun <Result, ResultState : S> goto(
         state: ResultState,
         callable: suspend () -> Result,
-    ): ProcessManagerStepBuilder<Result, C, E, S> {
-        return ProcessManagerStepBuilder(state, callable)
-    }
+    ): ProcessManagerStepBuilder<Result, C, E, S> = ProcessManagerStepBuilder(state, callable)
 
-    fun <ResultState : S> goto(state: ResultState): ProcessManagerStepBuilder<Unit, C, E, S> {
-        return ProcessManagerStepBuilder(state, null)
-    }
+    fun <ResultState : S> goto(state: ResultState): ProcessManagerStepBuilder<Unit, C, E, S> = ProcessManagerStepBuilder(state, null)
 
     infix fun <C : DomainCommand, E : DomainEvent, S : AggregateState> C.toAggregate(aggregateType: Aggregate<C, E, S>) =
         CommandReceiver(this, aggregateType)
 
-    infix fun E.at(timestamp: Instant): EventReceiver<E> {
-        return EventReceiver(this, timestamp)
-    }
+    infix fun E.at(timestamp: Instant): EventReceiver<E> = EventReceiver(this, timestamp)
 
-    infix fun E.after(duration: Duration): EventReceiver<E> {
-        return EventReceiver(this, duration)
-    }
+    infix fun E.after(duration: Duration): EventReceiver<E> = EventReceiver(this, duration)
 
     val now: Instant = Instant.MIN
 
-    fun Int.hours(): Duration {
-        return Duration.of(this.toLong(), ChronoUnit.HOURS)
-    }
+    fun Int.hours(): Duration = Duration.of(this.toLong(), ChronoUnit.HOURS)
 
-    fun Int.minutes(): Duration {
-        return Duration.of(this.toLong(), ChronoUnit.MINUTES)
-    }
+    fun Int.minutes(): Duration = Duration.of(this.toLong(), ChronoUnit.MINUTES)
 }
 
 sealed class ExecutedStep
+
 data class SuccessfullyExecutedStep(
     val sendableCommands: List<SendableCommand<*, *, *, *>>,
     val scheduledEvents: List<SchedulableEvent<*, *>>,
 ) : ExecutedStep()
 
-data class UnsuccessfullyExecutedStep(val executionException: Throwable) : ExecutedStep()
+data class UnsuccessfullyExecutedStep(
+    val executionException: Throwable,
+) : ExecutedStep()
 
 class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(
     val state: S,
     private val callable: (suspend () -> Result)?,
 ) {
-
     private var capturedCommandReceivers: List<(Result) -> CommandReceiver<*, *, *>> = emptyList()
 
     private var capturedEventReceivers: List<(Result) -> EventReceiver<*>> = emptyList()
@@ -169,22 +159,30 @@ class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEve
         return if (tryResult != null) {
             when (tryResult) {
                 is Try.Success -> {
-                    val schedulableCommands = capturedCommandReceivers.map {
-                        val commandReceiver = it.invoke(tryResult.get())
-                        SendableCommand(
-                            commandReceiver.command,
-                            commandReceiver.aggregateType as Aggregate<DomainCommand, DomainEvent, AggregateState>,
-                            commandReceiver.capturedId!!,
-                        )
-                    }
+                    val schedulableCommands =
+                        capturedCommandReceivers.map {
+                            val commandReceiver = it.invoke(tryResult.get())
+                            SendableCommand(
+                                commandReceiver.command,
+                                commandReceiver.aggregateType as Aggregate<DomainCommand, DomainEvent, AggregateState>,
+                                commandReceiver.capturedId!!,
+                            )
+                        }
 
-                    val scheduledEvents = capturedEventReceivers.map {
-                        val eventReceiver = it.invoke(tryResult.get())
-                        SchedulableEvent(
-                            eventReceiver.capturedEvent as DomainEvent,
-                            if (eventReceiver.capturedTimestamp != null) eventReceiver.capturedTimestamp!! else Instant.now() + eventReceiver.capturedDuration!!,
-                        )
-                    }
+                    val scheduledEvents =
+                        capturedEventReceivers.map {
+                            val eventReceiver = it.invoke(tryResult.get())
+                            SchedulableEvent(
+                                eventReceiver.capturedEvent as DomainEvent,
+                                if (eventReceiver.capturedTimestamp !=
+                                    null
+                                ) {
+                                    eventReceiver.capturedTimestamp!!
+                                } else {
+                                    Instant.now() + eventReceiver.capturedDuration!!
+                                },
+                            )
+                        }
 
                     SuccessfullyExecutedStep(schedulableCommands, scheduledEvents)
                 }
@@ -192,41 +190,47 @@ class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEve
                 else -> UnsuccessfullyExecutedStep(tryResult.cause)
             }
         } else {
-            val schedulableCommands = capturedCommandReceivers.map {
-                val commandReceiver = it.invoke(Unit as Result)
-                SendableCommand(
-                    commandReceiver.command,
-                    commandReceiver.aggregateType as Aggregate<DomainCommand, DomainEvent, AggregateState>,
-                    commandReceiver.capturedId!!,
-                )
-            }
+            val schedulableCommands =
+                capturedCommandReceivers.map {
+                    val commandReceiver = it.invoke(Unit as Result)
+                    SendableCommand(
+                        commandReceiver.command,
+                        commandReceiver.aggregateType as Aggregate<DomainCommand, DomainEvent, AggregateState>,
+                        commandReceiver.capturedId!!,
+                    )
+                }
 
-            val scheduledEvents = capturedEventReceivers.map {
-                val eventReceiver = it.invoke(Unit as Result)
-                SchedulableEvent(
-                    eventReceiver.capturedEvent as DomainEvent,
-                    if (eventReceiver.capturedTimestamp != null) eventReceiver.capturedTimestamp!! else Instant.now() + eventReceiver.capturedDuration!!,
-                )
-            }
+            val scheduledEvents =
+                capturedEventReceivers.map {
+                    val eventReceiver = it.invoke(Unit as Result)
+                    SchedulableEvent(
+                        eventReceiver.capturedEvent as DomainEvent,
+                        if (eventReceiver.capturedTimestamp !=
+                            null
+                        ) {
+                            eventReceiver.capturedTimestamp!!
+                        } else {
+                            Instant.now() + eventReceiver.capturedDuration!!
+                        },
+                    )
+                }
             SuccessfullyExecutedStep(schedulableCommands, scheduledEvents)
         }
     }
 
-    private suspend fun <Result> doExecute(callable: (suspend () -> Result)): Try<Result> {
-        return try {
+    private suspend fun <Result> doExecute(callable: (suspend () -> Result)): Try<Result> =
+        try {
             val result = callable.invoke()
             Try.success(result)
         } catch (ex: Exception) {
             Try.failure(ex)
         }
-    }
 }
 
 class CommandReceiver<C : DomainCommand, E : DomainEvent, S : AggregateState>(
     val command: C,
     val aggregateType: Aggregate<C, E, S>,
 ) {
-
     var capturedId: AggregateId? = null
 
     infix fun identifiedBy(id: AggregateId): CommandReceiver<C, E, S> {
@@ -236,7 +240,6 @@ class CommandReceiver<C : DomainCommand, E : DomainEvent, S : AggregateState>(
 }
 
 class EventReceiver<E : DomainEvent>() {
-
     var capturedEvent: E? = null
 
     var capturedTimestamp: Instant? = null
