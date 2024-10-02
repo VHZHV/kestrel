@@ -6,9 +6,9 @@ import com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.Json
 import com.github.salomonbrys.kotson.jsonObject
 
 object FailedLoginAttemptsIncrementedMapper : JsonEventMappingConfigurer<FailedLoginAttemptsIncremented> {
-
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<FailedLoginAttemptsIncremented>) {
-        configurationFactory.create(FailedLoginAttemptsIncremented::class.qualifiedName!!)
+        configurationFactory
+            .create(FailedLoginAttemptsIncremented::class.qualifiedName!!)
             .mappingFunctions({ _ -> jsonObject() }, { _ -> FailedLoginAttemptsIncremented })
     }
 }
