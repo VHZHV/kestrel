@@ -15,7 +15,6 @@ import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.FeatureSpec
 
 class JsonEventPayloadMapperTests : FeatureSpec() {
-
     private val gson = Gson()
 
     init {
@@ -29,17 +28,19 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 1 payload") {
                 // Given
-                val eventVersion1Payload = jsonObject(
-                    "firstName" to "joe",
-                    "secondName" to "bloggs",
-                )
+                val eventVersion1Payload =
+                    jsonObject(
+                        "firstName" to "joe",
+                        "secondName" to "bloggs",
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion1Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
-                    1,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion1Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+                        1,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -49,17 +50,19 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 2 payload") {
                 // Given
-                val eventVersion2Payload = jsonObject(
-                    "first_name" to "joe",
-                    "second_name" to "bloggs",
-                )
+                val eventVersion2Payload =
+                    jsonObject(
+                        "first_name" to "joe",
+                        "second_name" to "bloggs",
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion2Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
-                    2,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion2Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+                        2,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -69,17 +72,19 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 3 payload") {
                 // Given
-                val eventVersion3Payload = jsonObject(
-                    "first_name" to "joe",
-                    "last_name" to "bloggs",
-                )
+                val eventVersion3Payload =
+                    jsonObject(
+                        "first_name" to "joe",
+                        "last_name" to "bloggs",
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion3Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
-                    3,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion3Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+                        3,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -89,17 +94,19 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 4 payload") {
                 // Given
-                val eventVersion4Payload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                )
+                val eventVersion4Payload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion4Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
-                    4,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion4Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+                        4,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -109,17 +116,19 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 5 payload") {
                 // Given
-                val eventVersion5Payload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                )
+                val eventVersion5Payload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion5Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName2",
-                    5,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion5Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName2",
+                        5,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -129,18 +138,20 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 6 payload") {
                 // Given
-                val eventVersion6Payload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                    "activated" to false,
-                )
+                val eventVersion6Payload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                        "activated" to false,
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion6Payload),
-                    "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName2",
-                    6,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion6Payload),
+                        "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName2",
+                        6,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -150,18 +161,20 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 7 payload") {
                 // Given
-                val eventVersion7Payload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                    "activated" to false,
-                )
+                val eventVersion7Payload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                        "activated" to false,
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion7Payload),
-                    "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
-                    7,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion7Payload),
+                        "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
+                        7,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -171,18 +184,20 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("deserialise a version 8 payload") {
                 // Given
-                val eventVersion8Payload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                    "active" to false,
-                )
+                val eventVersion8Payload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                        "active" to false,
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventVersion8Payload),
-                    "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
-                    8,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventVersion8Payload),
+                        "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
+                        8,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -205,18 +220,20 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
             scenario("Deserialises correctly an event that has no migration history") {
 
                 // Given
-                val eventPayload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                    "active" to true,
-                )
+                val eventPayload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                        "active" to true,
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithNoMigrationHistory>(
-                    gson.toJson(eventPayload),
-                    "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithNoMigrationHistory",
-                    1,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithNoMigrationHistory>(
+                        gson.toJson(eventPayload),
+                        "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithNoMigrationHistory",
+                        1,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -226,18 +243,20 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
 
             scenario("Deserialises correctly the latest version of an event with migration history") {
                 // Given
-                val eventPayload = jsonObject(
-                    "forename" to "joe",
-                    "surname" to "bloggs",
-                    "active" to false,
-                )
+                val eventPayload =
+                    jsonObject(
+                        "forename" to "joe",
+                        "surname" to "bloggs",
+                        "active" to false,
+                    )
 
                 // When
-                val event = payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
-                    gson.toJson(eventPayload),
-                    "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
-                    8,
-                )
+                val event =
+                    payloadMapper.deserialiseEvent<EventWithComplexMigrationHistoryClassName3>(
+                        gson.toJson(eventPayload),
+                        "com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName3",
+                        8,
+                    )
 
                 // Then
                 event.forename shouldBe "joe"
@@ -290,21 +309,28 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
     }
 }
 
-class EventWithComplexMigrationHistoryClassName3(val forename: String, val surname: String, val active: Boolean) :
-    DomainEvent {
+class EventWithComplexMigrationHistoryClassName3(
+    val forename: String,
+    val surname: String,
+    val active: Boolean,
+) : DomainEvent {
     override val tag = DomainEventTag("dummy-event")
 }
 
-class EventWithNoMigrationHistory(val forename: String, val surname: String, val active: Boolean) : DomainEvent {
+class EventWithNoMigrationHistory(
+    val forename: String,
+    val surname: String,
+    val active: Boolean,
+) : DomainEvent {
     override val tag = DomainEventTag("dummy-event")
 }
 
-class EventWithComplexMigrationHistoryMappingConfigurer :
-    JsonEventMappingConfigurer<EventWithComplexMigrationHistoryClassName3> {
-
+class EventWithComplexMigrationHistoryMappingConfigurer : JsonEventMappingConfigurer<EventWithComplexMigrationHistoryClassName3> {
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<EventWithComplexMigrationHistoryClassName3>) {
-        configurationFactory.create("com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1")
-            .migrateFormat(migrateVersion1ToVersion2)
+        configurationFactory
+            .create(
+                "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+            ).migrateFormat(migrateVersion1ToVersion2)
             .migrateFormat(migrateVersion2ToVersion3)
             .migrateFormat(migrateVersion3ToVersion4)
             .migrateClassName("com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName2")
@@ -370,9 +396,9 @@ class EventWithComplexMigrationHistoryMappingConfigurer :
 }
 
 class EventWithNoMigrationHistoryMappingConfigurer : JsonEventMappingConfigurer<EventWithNoMigrationHistory> {
-
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<EventWithNoMigrationHistory>) {
-        configurationFactory.create(EventWithNoMigrationHistory::class.qualifiedName!!)
+        configurationFactory
+            .create(EventWithNoMigrationHistory::class.qualifiedName!!)
             .mappingFunctions(serialise, deserialise)
     }
 

@@ -25,66 +25,71 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.util.toMap
 
-class UserRoutes @Inject constructor(
-    application: Application,
-    domainModel: DomainModel,
-    userReadModel: UserReadModel,
-    backend: Backend,
-) : BaseRoutes() {
+class UserRoutes
+    @Inject
+    constructor(
+        application: Application,
+        domainModel: DomainModel,
+        userReadModel: UserReadModel,
+        backend: Backend,
+    ) : BaseRoutes() {
+        init {
+            application.routing {
 
-    init {
-        application.routing {
+                route("/events") {
 
-            route("/events") {
-
-                get {
-                    val producer = BoundedContextHttpJsonEventStreamProducer(backend)
-                    call.respondWithJson(producer.produceFrom(call.parameters.toMap()))
-                }
-            }
-
-            route("/users") {
-
-                get {
-                    call.respondWithJson(userReadModel.findAllUsers().map { userToJsonObject(it) })
-                }
-
-                post {
-                    val request = RegisterUserRequest(call.receiveJson())
-                    val user = domainModel.aggregateRootOf(User, request.id)
-
-                    when (RegisterUser(request.username, request.password) sendTo user) {
-                        is SuccessResult -> call.respondWithJson(jsonObject("id" to request.id.value))
-                        else -> call.respond(HttpStatusCode.InternalServerError)
+                    get {
+                        val producer = BoundedContextHttpJsonEventStreamProducer(backend)
+                        call.respondWithJson(producer.produceFrom(call.parameters.toMap()))
                     }
                 }
 
-                route("{id}") {
+                route("/users") {
+
                     get {
-                        val user = userReadModel.findUserById(call.parameters["id"]!!)
-                        if (user == null) {
-                            call.respond(HttpStatusCode.NotFound)
-                        } else {
-                            call.respondWithJson(
-                                userToJsonObject(user),
-                            )
+                        call.respondWithJson(userReadModel.findAllUsers().map { userToJsonObject(it) })
+                    }
+
+                    post {
+                        val request = RegisterUserRequest(call.receiveJson())
+                        val user = domainModel.aggregateRootOf(User, request.id)
+
+                        when (RegisterUser(request.username, request.password) sendTo user) {
+                            is SuccessResult -> call.respondWithJson(jsonObject("id" to request.id.value))
+                            else -> call.respond(HttpStatusCode.InternalServerError)
+                        }
+                    }
+
+                    route("{id}") {
+                        get {
+                            val user = userReadModel.findUserById(call.parameters["id"]!!)
+                            if (user == null) {
+                                call.respond(HttpStatusCode.NotFound)
+                            } else {
+                                call.respondWithJson(
+                                    userToJsonObject(user),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+
+        private fun userToJsonObject(user: UserDTO) =
+            jsonObject(
+                "id" to user.id,
+                "username" to user.username,
+                "password" to user.password,
+                "locked" to user.locked,
+            )
     }
 
-    private fun userToJsonObject(user: UserDTO) =
-        jsonObject(
-            "id" to user.id,
-            "username" to user.username,
-            "password" to user.password,
-            "locked" to user.locked,
-        )
-}
-
-data class RegisterUserRequest(val id: AggregateId, val username: String, val password: String) {
+data class RegisterUserRequest(
+    val id: AggregateId,
+    val username: String,
+    val password: String,
+) {
     companion object {
         operator fun invoke(requestBody: JsonObject): RegisterUserRequest {
             val username = requestBody["username"].string
