@@ -6,9 +6,9 @@ import com.dreweaster.ddd.kestrel.infrastructure.driven.backend.mapper.json.Json
 import com.github.salomonbrys.kotson.jsonObject
 
 object UserLockedMapper : JsonEventMappingConfigurer<UserLocked> {
-
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<UserLocked>) {
-        configurationFactory.create(UserLocked::class.qualifiedName!!)
+        configurationFactory
+            .create(UserLocked::class.qualifiedName!!)
             .mappingFunctions({ _ -> jsonObject() }, { _ -> UserLocked })
     }
 }

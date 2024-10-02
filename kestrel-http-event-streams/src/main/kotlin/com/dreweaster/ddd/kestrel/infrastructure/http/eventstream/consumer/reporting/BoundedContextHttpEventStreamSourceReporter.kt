@@ -1,12 +1,10 @@
 package com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.reporting
 
 interface BoundedContextHttpEventStreamSourceReporter {
-
     fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe
 }
 
 interface BoundedContextHttpEventStreamSourceProbe {
-
     fun startedConsuming()
 
     fun finishedConsuming()
@@ -38,9 +36,10 @@ interface BoundedContextHttpEventStreamSourceProbe {
     fun finishedHandlingEvent(ex: Throwable)
 }
 
-class ReportingContext(subscriptionName: String, reporters: List<BoundedContextHttpEventStreamSourceReporter>) :
-    BoundedContextHttpEventStreamSourceProbe {
-
+class ReportingContext(
+    subscriptionName: String,
+    reporters: List<BoundedContextHttpEventStreamSourceReporter>,
+) : BoundedContextHttpEventStreamSourceProbe {
     private val probes: List<BoundedContextHttpEventStreamSourceProbe> =
         reporters.map { it.createProbe(subscriptionName) }
 
@@ -106,9 +105,7 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
 }
 
 object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
-
     class ConsoleProbe : BoundedContextHttpEventStreamSourceProbe {
-
         override fun startedConsuming() {
         }
 
@@ -155,7 +152,5 @@ object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
         }
     }
 
-    override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe {
-        return ConsoleProbe()
-    }
+    override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe = ConsoleProbe()
 }
