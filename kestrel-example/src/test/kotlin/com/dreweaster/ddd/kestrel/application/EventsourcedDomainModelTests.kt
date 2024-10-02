@@ -22,7 +22,6 @@ import kotlinx.coroutines.runBlocking
 // TODO: Test Eden command and event handling
 // TODO: Determine if current approach to not supporting eden commands and events outside of edenBehaviour is actually correct feature
 class EventsourcedDomainModelTests : WordSpec() {
-
     private val backend = MockBackend()
 
     private val deduplicationStrategyFactory = SwitchableDeduplicationStrategyFactory()
@@ -65,10 +64,11 @@ class EventsourcedDomainModelTests : WordSpec() {
 
                     // Then
                     (result as SuccessResult).generatedEvents.size shouldBe 1
-                    result.generatedEvents[0] shouldBe PasswordChanged(
-                        oldPassword = "password",
-                        password = "changedPassword",
-                    )
+                    result.generatedEvents[0] shouldBe
+                        PasswordChanged(
+                            oldPassword = "password",
+                            password = "changedPassword",
+                        )
                     result.deduplicated shouldBe false
                 }
             }
@@ -101,21 +101,23 @@ class EventsourcedDomainModelTests : WordSpec() {
                     user.handleCommand(IncrementFailedLoginAttempts)
                     user.handleCommand(IncrementFailedLoginAttempts)
                     user.handleCommand(IncrementFailedLoginAttempts)
-                    val firstResult = user.handleCommandEnvelope(
-                        CommandEnvelope(
-                            IncrementFailedLoginAttempts,
-                            CommandId("command-id-5"),
-                        ),
-                    )
+                    val firstResult =
+                        user.handleCommandEnvelope(
+                            CommandEnvelope(
+                                IncrementFailedLoginAttempts,
+                                CommandId("command-id-5"),
+                            ),
+                        )
                     val eventsGeneratedWhenCommandFirstHandled = (firstResult as SuccessResult).generatedEvents
 
                     // When
-                    val result = user.handleCommandEnvelope(
-                        CommandEnvelope(
-                            IncrementFailedLoginAttempts,
-                            CommandId("command-id-5"),
-                        ),
-                    )
+                    val result =
+                        user.handleCommandEnvelope(
+                            CommandEnvelope(
+                                IncrementFailedLoginAttempts,
+                                CommandId("command-id-5"),
+                            ),
+                        )
 
                     // Then
                     (result as SuccessResult).generatedEvents shouldBe eventsGeneratedWhenCommandFirstHandled
@@ -231,19 +233,21 @@ class EventsourcedDomainModelTests : WordSpec() {
                             CommandId("some-command-id"),
                         ),
                     )
-                    val result = user.handleCommandEnvelope(
-                        CommandEnvelope(
-                            ChangePassword("anotherChangedPassword"),
-                            CommandId("some-command-id"),
-                        ),
-                    )
+                    val result =
+                        user.handleCommandEnvelope(
+                            CommandEnvelope(
+                                ChangePassword("anotherChangedPassword"),
+                                CommandId("some-command-id"),
+                            ),
+                        )
 
                     // Then
                     (result as SuccessResult).generatedEvents.size shouldBe 1
-                    result.generatedEvents[0] shouldBe PasswordChanged(
-                        oldPassword = "changedPassword",
-                        password = "anotherChangedPassword",
-                    )
+                    result.generatedEvents[0] shouldBe
+                        PasswordChanged(
+                            oldPassword = "changedPassword",
+                            password = "anotherChangedPassword",
+                        )
                     result.deduplicated shouldBe false
                 }
             }
@@ -267,7 +271,6 @@ class EventsourcedDomainModelTests : WordSpec() {
 }
 
 class SwitchableDeduplicationStrategyFactory : CommandDeduplicationStrategyFactory {
-
     private var deduplicationEnabled = true
 
     fun toggleDeduplicationOn() {
@@ -296,7 +299,6 @@ class SwitchableDeduplicationStrategyFactory : CommandDeduplicationStrategyFacto
 }
 
 class MockBackend : InMemoryBackend() {
-
     private var loadErrorState = false
 
     private var saveErrorState = false
@@ -344,18 +346,20 @@ class MockBackend : InMemoryBackend() {
         rawEvents: List<E>,
         expectedSequenceNumber: Long,
         correlationId: CorrelationId?,
-    ): List<PersistedEvent<E>> {
-        return when {
+    ): List<PersistedEvent<E>> =
+        when {
             optimisticConcurrencyExceptionOnSave -> throw OptimisticConcurrencyException
+
             saveErrorState -> throw IllegalStateException()
-            else -> super.saveEvents(
-                aggregateType,
-                aggregateId,
-                causationId,
-                rawEvents,
-                expectedSequenceNumber,
-                correlationId,
-            )
+
+            else ->
+                super.saveEvents(
+                    aggregateType,
+                    aggregateId,
+                    causationId,
+                    rawEvents,
+                    expectedSequenceNumber,
+                    correlationId,
+                )
         }
-    }
 }

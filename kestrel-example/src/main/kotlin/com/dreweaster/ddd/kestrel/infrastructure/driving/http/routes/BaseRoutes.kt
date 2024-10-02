@@ -14,15 +14,13 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.InputStreamReader
 
 abstract class BaseRoutes {
-
     companion object {
         val gson = Gson()
     }
 
     suspend fun ApplicationCall.respondWithJson(obj: Any) = respondText(gson.toJson(obj), ContentType.Application.Json)
 
-    fun ApplicationCall.receiveJson() =
-        JsonParser.parseReader(InputStreamReader(request.receiveChannel().toInputStream())) as JsonObject
+    fun ApplicationCall.receiveJson() = JsonParser.parseReader(InputStreamReader(request.receiveChannel().toInputStream())) as JsonObject
 
     // Define an extension to Int
     suspend infix fun <C : DomainCommand, E : DomainEvent> C.sendTo(aggregateRoot: AggregateRoot<C, E>): CommandHandlingResult<E> =

@@ -10,8 +10,9 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offse
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.select
 
-class PostgresOffsetManager(private val database: Database) : OffsetManager {
-
+class PostgresOffsetManager(
+    private val database: Database,
+) : OffsetManager {
     object Offsets : Table("event_stream_offsets") {
         val name = varchar("name", 100)
         val lastProcessedOffset = long("last_processed_offset")
@@ -20,17 +21,25 @@ class PostgresOffsetManager(private val database: Database) : OffsetManager {
         override val primaryKey = PrimaryKey(name)
     }
 
-    override suspend fun getOffset(offsetKey: String) = database.transaction {
-        Offsets.slice(lastProcessedOffset).select { name eq offsetKey }
-            .map { row -> row[lastProcessedOffset] }.firstOrNull()
-    }
+    override suspend fun getOffset(offsetKey: String) =
+        database.transaction {
+            Offsets
+                .slice(lastProcessedOffset)
+                .select { name eq offsetKey }
+                .map { row -> row[lastProcessedOffset] }
+                .firstOrNull()
+        }
 
-    override suspend fun saveOffset(offsetKey: String, offset: Long) {
+    override suspend fun saveOffset(
+        offsetKey: String,
+        offset: Long,
+    ) {
         database.transaction { tx ->
-            val rowsAffected = Offsets.upsert(primaryKeyConstraintConflictTarget, { name eq offsetKey }) {
-                it[name] = offsetKey
-                it[lastProcessedOffset] = offset
-            }
+            val rowsAffected =
+                Offsets.upsert(primaryKeyConstraintConflictTarget, { name eq offsetKey }) {
+                    it[name] = offsetKey
+                    it[lastProcessedOffset] = offset
+                }
             if (rowsAffected != 1) tx.rollback(UnexpectedNumberOfRowsAffectedInUpdate())
         }
     }

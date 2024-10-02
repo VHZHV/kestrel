@@ -20,56 +20,59 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class SynchronousJdbcUserReadModel @Inject constructor(private val db: Database) :
-    SynchronousJdbcReadModel(),
-    UserReadModel {
+class SynchronousJdbcUserReadModel
+    @Inject
+    constructor(
+        private val db: Database,
+    ) : SynchronousJdbcReadModel(),
+        UserReadModel {
+        object Users : Table("usr") {
+            val id: Column<String> = varchar("id", 72)
+            val username: Column<String> = varchar("username", 100)
+            val password: Column<String> = varchar("password", 20)
+            val locked: Column<Boolean> = bool("locked")
+        }
 
-    object Users : Table("usr") {
-        val id: Column<String> = varchar("id", 72)
-        val username: Column<String> = varchar("username", 100)
-        val password: Column<String> = varchar("password", 20)
-        val locked: Column<Boolean> = bool("locked")
-    }
+        override suspend fun findAllUsers(): List<UserDTO> = db.transaction { Users.selectAll().map(rowMapper) }
 
-    override suspend fun findAllUsers(): List<UserDTO> = db.transaction { Users.selectAll().map(rowMapper) }
+        override suspend fun findUserById(id: String): UserDTO? =
+            db.transaction { Users.select { Users.id.eq(id) }.map(rowMapper).firstOrNull() }
 
-    override suspend fun findUserById(id: String): UserDTO? =
-        db.transaction { Users.select { Users.id.eq(id) }.map(rowMapper).firstOrNull() }
+        override val update =
+            projection<User, UserEvent> {
 
-    override val update = projection<User, UserEvent> {
+                event<UserRegistered> { e ->
+                    Users.insert {
+                        it[id] = e.aggregateId.value
+                        it[username] = e.rawEvent.username
+                        it[password] = e.rawEvent.password
+                        it[locked] = false
+                    }
+                }
 
-        event<UserRegistered> { e ->
-            Users.insert {
-                it[id] = e.aggregateId.value
-                it[username] = e.rawEvent.username
-                it[password] = e.rawEvent.password
-                it[locked] = false
+                event<UsernameChanged> { e ->
+                    Users.update({ Users.id eq e.aggregateId.value }) { it[username] = e.rawEvent.username } eq 1
+                }
+
+                event<PasswordChanged> { e ->
+                    Users.update({ Users.id eq e.aggregateId.value }) { it[password] = e.rawEvent.password } eq 1
+                }
+
+                event<UserLocked> { e ->
+                    Users.update({ Users.id eq e.aggregateId.value }) { it[locked] = true } eq 1
+                }
+
+                event<UserUnlocked> { e ->
+                    Users.update({ Users.id eq e.aggregateId.value }) { it[locked] = false } eq 1
+                }
             }
-        }
 
-        event<UsernameChanged> { e ->
-            Users.update({ Users.id eq e.aggregateId.value }) { it[username] = e.rawEvent.username } eq 1
-        }
-
-        event<PasswordChanged> { e ->
-            Users.update({ Users.id eq e.aggregateId.value }) { it[password] = e.rawEvent.password } eq 1
-        }
-
-        event<UserLocked> { e ->
-            Users.update({ Users.id eq e.aggregateId.value }) { it[locked] = true } eq 1
-        }
-
-        event<UserUnlocked> { e ->
-            Users.update({ Users.id eq e.aggregateId.value }) { it[locked] = false } eq 1
+        private val rowMapper: (ResultRow) -> UserDTO = { row ->
+            UserDTO(
+                id = row[Users.id],
+                username = row[Users.username],
+                password = row[Users.password],
+                locked = row[Users.locked],
+            )
         }
     }
-
-    private val rowMapper: (ResultRow) -> UserDTO = { row ->
-        UserDTO(
-            id = row[Users.id],
-            username = row[Users.username],
-            password = row[Users.password],
-            locked = row[Users.locked],
-        )
-    }
-}
