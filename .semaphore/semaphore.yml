@@ -24,6 +24,7 @@ blocks:
           commands:
             - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
             - wait
+            - ls -la
 
             - cd "${REPO_NAME}"
 
