@@ -59,18 +59,14 @@ private fun JavaInstant.toJodaDateTime() = JodaDateTime(this.toEpochMilli())
 
 class InstantColumnType(
     time: Boolean,
-) : ColumnType() {
+) : ColumnType<Instant>() {
     private val delegate = DateColumnType(time)
 
     override fun sqlType(): String = delegate.sqlType()
 
-    override fun nonNullValueToString(value: Any): String =
-        when (value) {
-            is JavaInstant -> delegate.nonNullValueToString(value.toJodaDateTime())
-            else -> delegate.nonNullValueToString(value)
-        }
+    override fun nonNullValueToString(value: Instant): String = delegate.nonNullValueToString(value.toJodaDateTime())
 
-    override fun valueFromDB(value: Any): Any {
+    override fun valueFromDB(value: Any): Instant {
         val fromDb =
             when (value) {
                 is JavaInstant -> delegate.valueFromDB(value.toJodaDateTime())
@@ -82,11 +78,7 @@ class InstantColumnType(
         }
     }
 
-    override fun notNullValueToDB(value: Any): Any =
-        when (value) {
-            is JavaInstant -> delegate.notNullValueToDB(value.toJodaDateTime())
-            else -> delegate.notNullValueToDB(value)
-        }
+    override fun notNullValueToDB(value: Instant): Any = delegate.notNullValueToDB(value.toJodaDateTime())
 }
 
 sealed class ConflictTarget(
@@ -136,7 +128,7 @@ class UpsertStatement<Key : Any>(
             where?.let { append(" WHERE ${QueryBuilder(true).append(it)}") }
         }
 
-    override fun arguments(): List<List<Pair<IColumnType, Any?>>> {
+    override fun arguments(): List<List<Pair<IColumnType<*>, Any?>>> {
         val superArgs = super.arguments().first()
 
         QueryBuilder(true).run {

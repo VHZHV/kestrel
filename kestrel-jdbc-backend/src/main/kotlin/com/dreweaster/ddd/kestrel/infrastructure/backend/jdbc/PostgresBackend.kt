@@ -34,7 +34,7 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.max
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -111,10 +111,9 @@ class PostgresBackend(
         val expectedMaxSequenceNumber =
             db.transaction {
                 ProcessManagers
-                    .slice(ProcessManagers.id)
-                    .select {
-                        ProcessManagers.id eq processManagerCorrelationId.value
-                    }.firstOrNull()
+                    .select(ProcessManagers.id)
+                    .where { ProcessManagers.id eq processManagerCorrelationId.value }
+                    .firstOrNull()
                     ?.let { it[ProcessManagers.maxSequenceNumber] }
             } ?: -1
 
@@ -162,6 +161,7 @@ class PostgresBackend(
     // TODO: Will need to implement snapshot retrieval
     // TODO: Should this try to loop through executing all outstanding unprocessed events, or just the next one?
     // If it loops, each iteration should (would have to) be in a separate transaction
+    @Suppress("t")
     override suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> executeProcessManager(
         type: P,
         id: ProcessManagerCorrelationId,
@@ -187,7 +187,8 @@ class PostgresBackend(
             db.transaction { _ ->
                 // TODO: properly handle case where process manager is not found with id and type
                 ProcessManagers
-                    .select {
+                    .selectAll()
+                    .where {
                         (ProcessManagers.id eq id.value) and
                             (ProcessManagers.type eq type.blueprint.name) and
                             (ProcessManagers.hasUnprocessedEvents eq true) and
@@ -203,7 +204,8 @@ class PostgresBackend(
                         val (minSequenceNumber, lastProcessedSequenceNumber, retryCount) = it
                         val events =
                             ProcessManagerDomainEvents
-                                .select {
+                                .selectAll()
+                                .where {
                                     (ProcessManagerDomainEvents.processManagerCorrelationId eq id.value) and
                                         (ProcessManagerDomainEvents.type eq type.blueprint.name) and
                                         (ProcessManagerDomainEvents.sequenceNumber lessEq (lastProcessedSequenceNumber + 2)) and
@@ -337,8 +339,8 @@ class PostgresBackend(
             val maxExpr = DomainEvents.globalOffset.max()
             val maxOffset =
                 DomainEvents
-                    .slice(maxExpr)
-                    .select {
+                    .select(maxExpr)
+                    .where {
                         (DomainEvents.tag inList tags.map { it.value }) and
                             (DomainEvents.globalOffset greater afterOffset)
                     }.firstOrNull()
@@ -346,7 +348,8 @@ class PostgresBackend(
 
             val events =
                 DomainEvents
-                    .select {
+                    .selectAll()
+                    .where {
                         (DomainEvents.tag inList tags.map { it.value }) and
                             (DomainEvents.globalOffset greater afterOffset)
                     }.orderBy(DomainEvents.globalOffset)
@@ -374,8 +377,8 @@ class PostgresBackend(
             val maxExpr = DomainEvents.globalOffset.max()
             val maxOffset =
                 DomainEvents
-                    .slice(maxExpr)
-                    .select {
+                    .select(maxExpr)
+                    .where {
                         (DomainEvents.tag inList tags.map { it.value }) and
                             (DomainEvents.timestamp greater afterInstant)
                     }.firstOrNull()
@@ -383,7 +386,8 @@ class PostgresBackend(
 
             val events =
                 DomainEvents
-                    .select {
+                    .selectAll()
+                    .where {
                         (DomainEvents.tag inList tags.map { it.value }) and
                             (DomainEvents.timestamp greater afterInstant)
                     }.orderBy(DomainEvents.globalOffset)
@@ -408,7 +412,8 @@ class PostgresBackend(
     ): List<PersistedEvent<E>> =
         db.transaction {
             DomainEvents
-                .select {
+                .selectAll()
+                .where {
                     (DomainEvents.aggregateId eq aggregateId.value) and
                         (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
                         (DomainEvents.sequenceNumber greater -1L)
@@ -423,7 +428,8 @@ class PostgresBackend(
     ): List<PersistedEvent<E>> =
         db.transaction {
             DomainEvents
-                .select {
+                .selectAll()
+                .where {
                     (DomainEvents.aggregateId eq aggregateId.value) and
                         (DomainEvents.aggregateType eq aggregateType.blueprint.name) and
                         (DomainEvents.sequenceNumber greater afterSequenceNumber)

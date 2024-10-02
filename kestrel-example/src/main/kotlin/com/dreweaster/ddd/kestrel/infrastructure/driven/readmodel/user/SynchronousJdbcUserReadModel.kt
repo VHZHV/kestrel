@@ -16,7 +16,6 @@ import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
@@ -36,7 +35,13 @@ class SynchronousJdbcUserReadModel
         override suspend fun findAllUsers(): List<UserDTO> = db.transaction { Users.selectAll().map(rowMapper) }
 
         override suspend fun findUserById(id: String): UserDTO? =
-            db.transaction { Users.select { Users.id.eq(id) }.map(rowMapper).firstOrNull() }
+            db.transaction {
+                Users
+                    .selectAll()
+                    .where { Users.id.eq(id) }
+                    .map(rowMapper)
+                    .firstOrNull()
+            }
 
         override val update =
             projection<User, UserEvent> {

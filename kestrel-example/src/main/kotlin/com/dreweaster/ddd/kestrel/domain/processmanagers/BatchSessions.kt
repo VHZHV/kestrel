@@ -433,7 +433,8 @@ interface ProcessManagerEventScheduler {
         fun onEventTriggered(notification: ProcessManagerScheduledEventNotification<C, E, S>)
     }
 
-    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>) // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>)
 
     fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> schedule(
         event: ProcessManagerScheduledEvent<C, E, S>,
