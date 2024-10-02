@@ -52,15 +52,12 @@ import java.time.Duration
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.minutes
 
-class EventWriteService(private val domainModel: DomainModel) {
+class EventWriteService(
+    private val domainModel: DomainModel,
+) {
+    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doA(id: String): CommandHandlingResult<Event> {
-        return domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
-    }
-
-    suspend fun doB(id: String): CommandHandlingResult<Event> {
-        return domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
-    }
+    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {
@@ -68,6 +65,7 @@ sealed interface Event : DomainEvent {
         get() = Companion.tag
 
     data object A : Event
+
     data object B : Event
 
     companion object {
@@ -77,39 +75,42 @@ sealed interface Event : DomainEvent {
 
 sealed interface Command : DomainCommand {
     data object A : Command
+
     data object B : Command
 }
 
 sealed interface State : AggregateState {
     data object A : State
+
     data object B : State
 }
 
 object Cycle : Aggregate<Command, Event, State> {
-    override val blueprint: AggregateBlueprint<Command, Event, State> = aggregate("cycle") {
-        edenBehaviour {
+    override val blueprint: AggregateBlueprint<Command, Event, State> =
+        aggregate("cycle") {
+            edenBehaviour {
 
-            receive {
-                command<Command.A> {
-                    accept(Event.A)
+                receive {
+                    command<Command.A> {
+                        accept(Event.A)
+                    }
+                }
+
+                apply {
+                    event<Event.A> { State.A }
                 }
             }
-
-            apply {
-                event<Event.A> { State.A }
-            }
-        }
-        behaviour<State.A> {
-            receive {
-                command<Command.B> { _, _ ->
-                    accept(Event.B)
+            behaviour<State.A> {
+                receive {
+                    command<Command.B> { _, _ ->
+                        accept(Event.B)
+                    }
+                }
+                apply {
+                    event<Event.B> { _, _ -> State.B }
                 }
             }
-            apply {
-                event<Event.B> { _, _ -> State.B }
-            }
         }
-    }
 }
 
 object ProducingConsumingBoundedContext : BoundedContextName {
@@ -119,7 +120,6 @@ object ProducingConsumingBoundedContext : BoundedContextName {
 class CycleEventConsumer(
     boundedContexts: BoundedContextEventStreamSources,
 ) : StatelessEventConsumer(boundedContexts) {
-
     private val events = mutableListOf<Event>()
 
     init {
@@ -143,7 +143,8 @@ class CycleEventConsumer(
 
 object ConfA : JsonEventMappingConfigurer<DomainEvent> {
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<DomainEvent>) {
-        configurationFactory.create(Event.A::class.qualifiedName!!)
+        configurationFactory
+            .create(Event.A::class.qualifiedName!!)
             .mappingFunctions(serialise, deserialise)
     }
 
@@ -153,7 +154,8 @@ object ConfA : JsonEventMappingConfigurer<DomainEvent> {
 
 object ConfB : JsonEventMappingConfigurer<DomainEvent> {
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<DomainEvent>) {
-        configurationFactory.create(Event.B::class.qualifiedName!!)
+        configurationFactory
+            .create(Event.B::class.qualifiedName!!)
             .mappingFunctions(serialise, deserialise)
     }
 
@@ -162,176 +164,201 @@ object ConfB : JsonEventMappingConfigurer<DomainEvent> {
 }
 
 private val eventPayloadMapper: EventPayloadMapper = JsonEventPayloadMapper(Gson(), listOf(ConfA, ConfB))
-private val backend = InMemoryBackend().also { be ->
-    be.streamer = SerialiseInMemoryEventStreamHandler(eventPayloadMapper) {
-        be.events
+private val backend =
+    InMemoryBackend().also { be ->
+        be.streamer =
+            SerialiseInMemoryEventStreamHandler(eventPayloadMapper) {
+                be.events
+            }
     }
-}
 private val domain = EventSourcedDomainModel(backend, TwentyFourHourWindowCommandDeduplication)
 private val writeService = EventWriteService(domain)
 private val producer = BoundedContextHttpJsonEventStreamProducer(backend)
-private const val port = 9464
-private val prometheusHttpServer = PrometheusHttpServer.builder().setPort(port).build()
+private const val PORT = 9464
+private val prometheusHttpServer = PrometheusHttpServer.builder().setPort(PORT).build()
 private val resource = Resource.getDefault()
-private val meterProvider = SdkMeterProvider.builder()
-    .setResource(resource)
-    .registerMetricReader(prometheusHttpServer)
-    .build()
+private val meterProvider =
+    SdkMeterProvider
+        .builder()
+        .setResource(resource)
+        .registerMetricReader(prometheusHttpServer)
+        .build()
 
-private val openTelemetry = OpenTelemetrySdk.builder()
-    .setMeterProvider(
-        meterProvider,
-    ).build()
+private val openTelemetry =
+    OpenTelemetrySdk
+        .builder()
+        .setMeterProvider(
+            meterProvider,
+        ).build()
 
-val eventStreamFactory = object : BoundedContextHttpEventStreamSourceFactory(ProducingConsumingBoundedContext) {
-    override val mappers: EventMappers = eventMappers {
+val eventStreamFactory =
+    object : BoundedContextHttpEventStreamSourceFactory(ProducingConsumingBoundedContext) {
+        override val mappers: EventMappers =
+            eventMappers {
 
-        tag(Event.tag.value) {
-            event<Event.A>(
-                Event.A::class.qualifiedName!!,
-                ConfA.deserialise,
-            )
-            event<Event.B>(
-                Event.B::class.qualifiedName!!,
-                ConfB.deserialise,
-            )
-        }
+                tag(Event.tag.value) {
+                    event<Event.A>(
+                        Event.A::class.qualifiedName!!,
+                        ConfA.deserialise,
+                    )
+                    event<Event.B>(
+                        Event.B::class.qualifiedName!!,
+                        ConfB.deserialise,
+                    )
+                }
+            }
     }
-}
 
-private val config = object : BoundedContextHttpEventStreamSourceConfiguration {
-    override val producerEndpointProtocol: String = "http"
+private val config =
+    object : BoundedContextHttpEventStreamSourceConfiguration {
+        override val producerEndpointProtocol: String = "http"
 
-    override val producerEndpointHostname: String = "localhost"
+        override val producerEndpointHostname: String = "localhost"
 
-    override val producerEndpointPort: Int = 8080
-    override val producerEndpointPath: String = "/metrics"
+        override val producerEndpointPort: Int = 8080
+        override val producerEndpointPath: String = "/metrics"
 
-    override fun batchSizeFor(subscriptionName: String): Int = 10
+        override fun batchSizeFor(subscriptionName: String): Int = 10
 
-    override fun repeatScheduleFor(subscriptionName: String): Duration = Duration.ofSeconds(1)
+        override fun repeatScheduleFor(subscriptionName: String): Duration = Duration.ofSeconds(1)
 
-    override fun enabled(subscriptionName: String): Boolean = true
-}
+        override fun enabled(subscriptionName: String): Boolean = true
+    }
 private val httpClient = DefaultAsyncHttpClient()
 
-private val configuration = WireMockConfiguration().port(8080).extensions(object : ResponseTransformerV2 {
-    override fun getName(): String = "producing-events"
+private val configuration =
+    WireMockConfiguration().port(8080).extensions(
+        object : ResponseTransformerV2 {
+            override fun getName(): String = "producing-events"
 
-    override fun transform(resp: Response, event: ServeEvent): Response {
-        val params = listOf(
-            "tags",
-            "after_timestamp",
-            "after_offset",
-            "batch_size",
-        ).mapNotNull {
-            try {
-                it to event.request.queryParameter(it).values()
-            } catch (e: Exception) {
-                null
+            override fun transform(
+                resp: Response,
+                event: ServeEvent,
+            ): Response {
+                val params =
+                    listOf(
+                        "tags",
+                        "after_timestamp",
+                        "after_offset",
+                        "batch_size",
+                    ).mapNotNull {
+                        try {
+                            it to event.request.queryParameter(it).values()
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.toMap()
+
+                return runBlocking {
+                    val result = producer.produceFrom(params)
+                    Response
+                        .response()
+                        .status(200)
+                        .body(result.toString())
+                        .build()
+                }
             }
-        }.toMap()
+        },
+    )
 
-        return runBlocking {
-            val result = producer.produceFrom(params)
-            Response.response()
-                .status(200)
-                .body(result.toString())
-                .build()
-        }
-    }
-})
+class OpenTelemetryMetricsTest :
+    WordSpec({
 
-class OpenTelemetryMetricsTest : WordSpec({
+        val mockServer = WireMockServer(configuration)
+        beforeSpec {
 
-    val mockServer = WireMockServer(configuration)
-    beforeSpec {
-
-        mockServer.start()
-        OpenTelemetryMetricsDomainModelReporter(openTelemetry).also {
-            domain.addReporter(it)
-        }
-        mockServer.stubFor(
-            get(urlPathMatching(".+"))
-                .willReturn(
-                    aResponse()
-                        .withTransformers("producing-events"),
-                ),
-        )
-    }
-    beforeTest {
-        backend.clear()
-    }
-    afterSpec {
-        mockServer.stop()
-    }
-
-    "domain metrics publication" should {
-
-        beforeTest {
-            writeService.doA("1")
-            writeService.doB("1")
-            writeService.doA("2")
-            writeService.doA("2")
-        }
-        "publish the correct metrics" {
-
-            eventually(1.minutes) {
-                val responseBody =
-                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
-                        .get().responseBody
-
-                responseBody shouldContain "aggregate_persist_events_total"
-                responseBody shouldContain "aggregate_command_execution_total"
-                responseBody shouldContain "aggregate_apply_command_total"
-                responseBody shouldContain "aggregate_events_emitted_total"
-                responseBody shouldContain "aggregate_recovery_total"
+            mockServer.start()
+            OpenTelemetryMetricsDomainModelReporter(openTelemetry).also {
+                domain.addReporter(it)
             }
-        }
-    }
-    "consumer metrics publication" should {
-
-        lateinit var source: BoundedContextHttpEventStreamSource
-        beforeTest {
-
-            val eventStreamReporter = OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
-                openTelemetry,
-                ProducingConsumingBoundedContext,
+            mockServer.stubFor(
+                get(urlPathMatching(".+"))
+                    .willReturn(
+                        aResponse()
+                            .withTransformers("producing-events"),
+                    ),
             )
-
-            source = eventStreamFactory.createHttpEventStreamSource(
-                httpClient,
-                config,
-                InMemoryOffsetManager,
-                ScheduledExecutorServiceJobManager(
-                    LocalClusterManager,
-                    Executors.newSingleThreadScheduledExecutor(),
-                ),
-            ).also {
-                it.addReporter(eventStreamReporter)
-            }
-            val sources = BoundedContextEventStreamSources(listOf(ProducingConsumingBoundedContext to source))
-
-            CycleEventConsumer(sources)
-
-            writeService.doA("1")
-            writeService.doB("1")
-            writeService.doA("2")
-            writeService.doA("2")
         }
-        "publish the correct metrics" {
-            eventually(1.minutes) {
-                val responseBody =
-                    httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
-                        .get().responseBody
+        beforeTest {
+            backend.clear()
+        }
+        afterSpec {
+            mockServer.stop()
+        }
 
-                responseBody shouldContain "max_offset_events"
-                responseBody shouldContain "event_handled_total"
-                responseBody shouldContain "offset_retrievals_total"
-                responseBody shouldContain "consumption_attempted_total"
-                responseBody shouldContain "offset_stores_total"
-                responseBody shouldContain "current_offset_latest_events"
+        "domain metrics publication" should {
+
+            beforeTest {
+                writeService.doA("1")
+                writeService.doB("1")
+                writeService.doA("2")
+                writeService.doA("2")
+            }
+            "publish the correct metrics" {
+
+                eventually(1.minutes) {
+                    val responseBody =
+                        httpClient
+                            .executeRequest(RequestBuilder().setUrl("http://localhost:$PORT/metrics").build())
+                            .get()
+                            .responseBody
+
+                    responseBody shouldContain "aggregate_persist_events_total"
+                    responseBody shouldContain "aggregate_command_execution_total"
+                    responseBody shouldContain "aggregate_apply_command_total"
+                    responseBody shouldContain "aggregate_events_emitted_total"
+                    responseBody shouldContain "aggregate_recovery_total"
+                }
             }
         }
-    }
-})
+        "consumer metrics publication" should {
+
+            lateinit var source: BoundedContextHttpEventStreamSource
+            beforeTest {
+
+                val eventStreamReporter =
+                    OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
+                        openTelemetry,
+                        ProducingConsumingBoundedContext,
+                    )
+
+                source =
+                    eventStreamFactory
+                        .createHttpEventStreamSource(
+                            httpClient,
+                            config,
+                            InMemoryOffsetManager,
+                            ScheduledExecutorServiceJobManager(
+                                LocalClusterManager,
+                                Executors.newSingleThreadScheduledExecutor(),
+                            ),
+                        ).also {
+                            it.addReporter(eventStreamReporter)
+                        }
+                val sources = BoundedContextEventStreamSources(listOf(ProducingConsumingBoundedContext to source))
+
+                CycleEventConsumer(sources)
+
+                writeService.doA("1")
+                writeService.doB("1")
+                writeService.doA("2")
+                writeService.doA("2")
+            }
+            "publish the correct metrics" {
+                eventually(1.minutes) {
+                    val responseBody =
+                        httpClient
+                            .executeRequest(RequestBuilder().setUrl("http://localhost:$PORT/metrics").build())
+                            .get()
+                            .responseBody
+
+                    responseBody shouldContain "max_offset_events"
+                    responseBody shouldContain "event_handled_total"
+                    responseBody shouldContain "offset_retrievals_total"
+                    responseBody shouldContain "consumption_attempted_total"
+                    responseBody shouldContain "offset_stores_total"
+                    responseBody shouldContain "current_offset_latest_events"
+                }
+            }
+        }
+    })

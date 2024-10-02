@@ -133,8 +133,9 @@ import java.time.Instant
 // Context
 
 interface BatchSessionsContext : ProcessManagerContext {
-
-    data class CarPark(val priceCappingPeriod: Duration)
+    data class CarPark(
+        val priceCappingPeriod: Duration,
+    )
 
     val carPark: CarPark
 }
@@ -159,12 +160,16 @@ data class ParkingSessionBatchCreated(
 ) : BatchSessionsEvent()
 
 object BufferingPeriodEnded : BatchSessionsEvent()
-data class TimedOutCreatingBatch(val completedBatchId: AggregateId) : BatchSessionsEvent()
+
+data class TimedOutCreatingBatch(
+    val completedBatchId: AggregateId,
+) : BatchSessionsEvent()
 
 // States
 sealed class BatchSessionsState : ProcessManagerState
 
 object Empty : BatchSessionsState()
+
 object Finished : BatchSessionsState()
 
 data class Buffering(
@@ -172,7 +177,6 @@ data class Buffering(
     val vehicle: Vehicle,
     val buffer: ParkingSessionBuffer,
 ) : BatchSessionsState() {
-
     val bufferedSessions = buffer.sessions
 
     operator fun plus(queuedParkingSession: QueuedParkingSession) = copy(buffer = buffer + queuedParkingSession)
@@ -188,8 +192,10 @@ data class CreatingBatch(
     val futureBuffer: ParkingSessionBuffer? = null,
     val completedFutureBatches: List<List<QueuedParkingSession>> = emptyList(),
 ) : BatchSessionsState() {
-
-    fun addToFutureBuffer(session: QueuedParkingSession, carPark: BatchSessionsContext.CarPark): CreatingBatch {
+    fun addToFutureBuffer(
+        session: QueuedParkingSession,
+        carPark: BatchSessionsContext.CarPark,
+    ): CreatingBatch {
         // TODO: Add completed future batch if necessary
         val newFutureBuffer = futureBuffer ?: ParkingSessionBuffer.startNew(session, carPark)
         return copy(futureBuffer = newFutureBuffer)
@@ -208,29 +214,36 @@ data class CreatingBatch(
 }
 
 // Value Objects
-data class Vehicle(val parkingAccountId: AggregateId, val parkableVehicleId: AggregateId)
-data class QueuedParkingSession(val startedAt: Instant, val finishedAt: Instant)
+data class Vehicle(
+    val parkingAccountId: AggregateId,
+    val parkableVehicleId: AggregateId,
+)
+
+data class QueuedParkingSession(
+    val startedAt: Instant,
+    val finishedAt: Instant,
+)
 
 data class ParkingSessionBuffer(
     val sessions: List<QueuedParkingSession>,
     val bufferingStartedAt: Instant,
     val bufferingWillCompleteAt: Instant,
 ) {
-
     operator fun plus(queuedParkingSession: QueuedParkingSession) = copy(sessions = sessions + queuedParkingSession)
 
     companion object {
-        fun startNew(parkingSession: QueuedParkingSession, carPark: BatchSessionsContext.CarPark) =
-            ParkingSessionBuffer(
-                sessions = listOf(parkingSession),
-                bufferingStartedAt = parkingSession.startedAt,
-                bufferingWillCompleteAt = parkingSession.startedAt + carPark.priceCappingPeriod,
-            )
+        fun startNew(
+            parkingSession: QueuedParkingSession,
+            carPark: BatchSessionsContext.CarPark,
+        ) = ParkingSessionBuffer(
+            sessions = listOf(parkingSession),
+            bufferingStartedAt = parkingSession.startedAt,
+            bufferingWillCompleteAt = parkingSession.startedAt + carPark.priceCappingPeriod,
+        )
     }
 }
 
 object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, BatchSessionsState> {
-
     override val blueprint =
 
         processManager("batch-parking-sessions", startWith = Empty, endWith = Finished) {
@@ -241,21 +254,25 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
                     goto(
                         Buffering(
                             carParkId = evt.carParkId,
-                            vehicle = Vehicle(
-                                parkingAccountId = evt.parkingAccountId,
-                                parkableVehicleId = evt.parkableVehicleId,
-                            ),
-                            buffer = ParkingSessionBuffer.startNew(
-                                carPark = cxt.carPark,
-                                parkingSession = QueuedParkingSession(
-                                    startedAt = evt.startedAt,
-                                    finishedAt = evt.finishedAt,
+                            vehicle =
+                                Vehicle(
+                                    parkingAccountId = evt.parkingAccountId,
+                                    parkableVehicleId = evt.parkableVehicleId,
                                 ),
-                            ),
+                            buffer =
+                                ParkingSessionBuffer.startNew(
+                                    carPark = cxt.carPark,
+                                    parkingSession =
+                                        QueuedParkingSession(
+                                            startedAt = evt.startedAt,
+                                            finishedAt = evt.finishedAt,
+                                        ),
+                                ),
                         ),
-                    ) { "dreweaster" to "password" }.andSend {
-                        RegisterUser(it.first, it.second) toAggregate User identifiedBy AggregateId()
-                    }.andEmit { BufferingPeriodEnded at evt.startedAt + cxt.carPark.priceCappingPeriod }
+                    ) { "dreweaster" to "password" }
+                        .andSend {
+                            RegisterUser(it.first, it.second) toAggregate User identifiedBy AggregateId()
+                        }.andEmit { BufferingPeriodEnded at evt.startedAt + cxt.carPark.priceCappingPeriod }
                 }
             }
 
@@ -289,13 +306,15 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
                                     vehicle = state.vehicle,
                                     completedBatchId = completedBatchId,
                                     completedBatch = state.buffer.sessions,
-                                    futureBuffer = ParkingSessionBuffer.startNew(
-                                        carPark = cxt.carPark,
-                                        parkingSession = QueuedParkingSession(
-                                            startedAt = evt.startedAt,
-                                            finishedAt = evt.finishedAt,
+                                    futureBuffer =
+                                        ParkingSessionBuffer.startNew(
+                                            carPark = cxt.carPark,
+                                            parkingSession =
+                                                QueuedParkingSession(
+                                                    startedAt = evt.startedAt,
+                                                    finishedAt = evt.finishedAt,
+                                                ),
                                         ),
-                                    ),
                                 ),
                             ).andSend {
                                 RegisterUser("dreweaster", "password") toAggregate User identifiedBy AggregateId()
@@ -309,7 +328,9 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
 
                 event<TimedOutCreatingBatch> { _, state, evt ->
                     when {
-                        state.completedBatchId != evt.completedBatchId -> goto(state) // TODO: Is this the correct way to ignore an event?
+                        state.completedBatchId != evt.completedBatchId -> goto(state)
+
+                        // TODO: Is this the correct way to ignore an event?
                         else -> throw Suspend("failed_to_create_batch")
                     }
                 }
@@ -358,16 +379,16 @@ class ProcessManagerEntryPoint<C : ProcessManagerContext, E : DomainEvent, S : P
     private val commandDispatcher: CommandDispatcher,
     private val eventScheduler: EventScheduler,
 ) {
-
     @Suppress("UNCHECKED_CAST")
     suspend fun process() {
         val blueprint = processManagerType.blueprint
         val behaviour = blueprint.capturedBehaviours[blueprint.startWith::class]
         val event = ParkingSessionQueued(AggregateId(), AggregateId(), AggregateId(), Instant.now(), Instant.now()) as E
         val state = blueprint.startWith
-        val batchSessionsContext = object : BatchSessionsContext {
-            override val carPark = BatchSessionsContext.CarPark(Duration.ofMinutes(100))
-        } as C
+        val batchSessionsContext =
+            object : BatchSessionsContext {
+                override val carPark = BatchSessionsContext.CarPark(Duration.ofMinutes(100))
+            } as C
 
         val handler =
             behaviour?.capturedHandlers?.get(event::class)!! as (C, S, E) -> ProcessManagerStepBuilder<*, C, E, S>
@@ -393,7 +414,6 @@ data class ProcessManagerScheduledEvent<C : ProcessManagerContext, E : DomainEve
     val serialisedEvent: String,
     val metadata: ProcessManagerScheduledEventMetadata<C, E, S>,
 ) {
-
     data class ProcessManagerScheduledEventMetadata<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(
         val processManagerType: ProcessManager<C, E, S>,
         val processManagerId: AggregateId,
@@ -403,9 +423,9 @@ data class ProcessManagerScheduledEvent<C : ProcessManagerContext, E : DomainEve
 }
 
 interface ProcessManagerEventScheduler {
-
     interface ProcessManagerScheduledEventNotification<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> {
         val event: ProcessManagerScheduledEvent<C, E, S>
+
         fun ack() // It's necessary for a listener to call ack() to confirm event has been handled. Otherwise, scheduler should resend
     }
 
@@ -413,7 +433,8 @@ interface ProcessManagerEventScheduler {
         fun onEventTriggered(notification: ProcessManagerScheduledEventNotification<C, E, S>)
     }
 
-    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>) // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>)
 
     fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> schedule(
         event: ProcessManagerScheduledEvent<C, E, S>,
@@ -422,7 +443,6 @@ interface ProcessManagerEventScheduler {
 }
 
 interface DomainModel {
-
     // By listening in to this event, one can choose to automatically trigger the event manager to event if desired
     // domainModel.processManagerOf(BatchSessions).instanceOf(processManagerId).event()
     // Alternative is to solely rely on polling domainModel.processManagerOf(BatchSessions).instancesAwaitingProcessing(pageable): Page<ProcessManagerId>
@@ -448,28 +468,38 @@ fun main() {
         processManagerType: ProcessManager<C, E, S>,
     ): ProcessManagerEntryPoint<C, E, S> {
         val domainModel = EventSourcedDomainModel(InMemoryBackend(), TwentyFourHourWindowCommandDeduplication)
-        val commandDispatcher = object : CommandDispatcher {
-            override suspend fun <C : DomainCommand, E : DomainEvent, S : AggregateState> dispatch(
-                command: C,
-                aggregateType: Aggregate<C, E, S>,
-                aggregateId: AggregateId,
-            ): Try<Unit> {
-                // TODO: Stuff like generating the right metadata
-                return when (
-                    val result =
-                        domainModel.aggregateRootOf(aggregateType, aggregateId).handleCommand(command)
-                ) {
-                    is SuccessResult -> Try.success(Unit)
-                    is RejectionResult -> Try.failure(result.error) // TODO: Probably terminal so suspend the PM
-                    is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException) // TODO: Retry a few times before suspending
-                    is UnexpectedExceptionResult -> Try.failure(result.ex) // TODO: Retry a few times before suspending
+        val commandDispatcher =
+            object : CommandDispatcher {
+                override suspend fun <C : DomainCommand, E : DomainEvent, S : AggregateState> dispatch(
+                    command: C,
+                    aggregateType: Aggregate<C, E, S>,
+                    aggregateId: AggregateId,
+                ): Try<Unit> {
+                    // TODO: Stuff like generating the right metadata
+                    return when (
+                        val result =
+                            domainModel.aggregateRootOf(aggregateType, aggregateId).handleCommand(command)
+                    ) {
+                        is SuccessResult -> Try.success(Unit)
+
+                        is RejectionResult -> Try.failure(result.error)
+
+                        // TODO: Probably terminal so suspend the PM
+                        is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException)
+
+                        // TODO: Retry a few times before suspending
+                        is UnexpectedExceptionResult -> Try.failure(result.ex) // TODO: Retry a few times before suspending
+                    }
                 }
             }
-        }
 
-        val eventScheduler = object : EventScheduler {
-            override suspend fun <Evt : E, E : DomainEvent> schedule(event: Evt, at: Instant) = Try.success(Unit)
-        }
+        val eventScheduler =
+            object : EventScheduler {
+                override suspend fun <Evt : E, E : DomainEvent> schedule(
+                    event: Evt,
+                    at: Instant,
+                ) = Try.success(Unit)
+            }
         return ProcessManagerEntryPoint(processManagerType, commandDispatcher, eventScheduler)
     }
 
