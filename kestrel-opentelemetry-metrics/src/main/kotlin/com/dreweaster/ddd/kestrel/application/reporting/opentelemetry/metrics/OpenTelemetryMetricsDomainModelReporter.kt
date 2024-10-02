@@ -19,57 +19,65 @@ import io.opentelemetry.api.common.AttributeKey.stringKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongCounter
 
-class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : DomainModelReporter {
+class OpenTelemetryMetricsDomainModelReporter(
+    openTelemetry: OpenTelemetry,
+) : DomainModelReporter {
     val aggregateTypeKey = "aggregate_type"
     val eventTypeKey = "event_type"
     val commandTypeKey = "command_type"
     val resultKey = "result"
     val deduplicatedKey = "deduplicated"
 
-    private val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.DomainModelReporter")
-        .build()
+    private val meter =
+        openTelemetry
+            .meterBuilder("com.dreweaster.ddd.kestrel.DomainModelReporter")
+            .build()
 
-    val commandExecution: LongCounter = meter
-        .counterBuilder("aggregate_command_execution_total")
-        .setDescription("Total aggregate commands executed")
-        .setUnit("1")
-        .build()
+    val commandExecution: LongCounter =
+        meter
+            .counterBuilder("aggregate_command_execution_total")
+            .setDescription("Total aggregate commands executed")
+            .setUnit("1")
+            .build()
 
-    val eventsEmitted: LongCounter = meter
-        .counterBuilder("aggregate_events_emitted_total")
-        .setDescription("Total aggregate events emitted")
-        .setUnit("1")
-        .build()
+    val eventsEmitted: LongCounter =
+        meter
+            .counterBuilder("aggregate_events_emitted_total")
+            .setDescription("Total aggregate events emitted")
+            .setUnit("1")
+            .build()
 
-    val aggregateRecovery: LongCounter = meter
-        .counterBuilder("aggregate_recovery_total")
-        .setDescription("Total aggregates recovered")
-        .setUnit("1")
-        .build()
+    val aggregateRecovery: LongCounter =
+        meter
+            .counterBuilder("aggregate_recovery_total")
+            .setDescription("Total aggregates recovered")
+            .setUnit("1")
+            .build()
 
-    val applyCommand: LongCounter = meter
-        .counterBuilder("aggregate_apply_command_total")
-        .setDescription("Total aggregate commands applied")
-        .setUnit("1")
-        .build()
+    val applyCommand: LongCounter =
+        meter
+            .counterBuilder("aggregate_apply_command_total")
+            .setDescription("Total aggregate commands applied")
+            .setUnit("1")
+            .build()
 
-    val persistEvents: LongCounter = meter
-        .counterBuilder("aggregate_persist_events_total")
-        .setDescription("Total calls to persist events for aggregate")
-        .setUnit("1")
-        .build()
+    val persistEvents: LongCounter =
+        meter
+            .counterBuilder("aggregate_persist_events_total")
+            .setDescription("Total calls to persist events for aggregate")
+            .setUnit("1")
+            .build()
 
-    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) =
-        true
+    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) = true
 
     override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(
         aggregateType: Aggregate<C, E, S>,
         aggregateId: AggregateId,
     ): CommandHandlingProbe<C, E, S> = OpenTelemetryCommandHandlingProbe(aggregateType)
 
-    inner class OpenTelemetryCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(private val aggregateType: Aggregate<C, E, S>) :
-        CommandHandlingProbe<C, E, S> {
-
+    inner class OpenTelemetryCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+        private val aggregateType: Aggregate<C, E, S>,
+    ) : CommandHandlingProbe<C, E, S> {
         private var commandName: String? = null
 
         override fun startedHandling(command: CommandEnvelope<C>) {
@@ -81,10 +89,17 @@ class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : Do
         override fun startedApplyingCommand() {
         }
 
-        override fun startedPersistingEvents(events: List<E>, expectedSequenceNumber: Long) {
+        override fun startedPersistingEvents(
+            events: List<E>,
+            expectedSequenceNumber: Long,
+        ) {
         }
 
-        override fun finishedRecoveringAggregate(previousEvents: List<E>, version: Long, state: S?) {
+        override fun finishedRecoveringAggregate(
+            previousEvents: List<E>,
+            version: Long,
+            state: S?,
+        ) {
             aggregateRecovery.add(
                 1L,
                 Attributes.of(
@@ -108,7 +123,10 @@ class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : Do
             )
         }
 
-        override fun commandApplicationAccepted(events: List<E>, deduplicated: Boolean) {
+        override fun commandApplicationAccepted(
+            events: List<E>,
+            deduplicated: Boolean,
+        ) {
             applyCommand.add(
                 1L,
                 Attributes.of(
@@ -122,7 +140,10 @@ class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : Do
             )
         }
 
-        override fun commandApplicationRejected(rejection: Throwable, deduplicated: Boolean) {
+        override fun commandApplicationRejected(
+            rejection: Throwable,
+            deduplicated: Boolean,
+        ) {
             applyCommand.add(
                 1L,
                 Attributes.of(

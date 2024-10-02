@@ -6,9 +6,7 @@ import com.dreweaster.ddd.kestrel.domain.DomainEvent
 import kotlin.reflect.KClass
 
 abstract class SynchronousJdbcReadModel {
-
     class EventHandlers {
-
         var handlers: Map<KClass<out DomainEvent>, ((PersistedEvent<DomainEvent>) -> Unit)> = emptyMap()
 
         fun <E : DomainEvent> withHandler(
@@ -36,8 +34,9 @@ abstract class SynchronousJdbcReadModel {
 }
 
 // TODO: Restrict events to only those applicable to the aggregate type
-class Projection<E : DomainEvent, A : Aggregate<*, E, *>>(val aggregateType: KClass<A>) {
-
+class Projection<E : DomainEvent, A : Aggregate<*, E, *>>(
+    val aggregateType: KClass<A>,
+) {
     val eventHandlers = SynchronousJdbcReadModel.EventHandlers()
 
     inline fun <reified Evt : E> event(noinline handler: (PersistedEvent<Evt>) -> Unit) {

@@ -13,25 +13,27 @@ import com.dreweaster.ddd.kestrel.infrastructure.driven.serialisation.user.Usern
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.BoundedContextHttpEventStreamSourceFactory
 
 object UserContextHttpEventStreamSourceFactory : BoundedContextHttpEventStreamSourceFactory(UserContext) {
+    override val mappers =
+        eventMappers {
 
-    override val mappers = eventMappers {
-
-        tag("user-event") {
-            event<UserRegistered>(
-                "com.dreweaster.ddd.kestrel.domain.aggregates.user.UserRegistered",
-                UserRegisteredMapper.deserialiser,
-            )
-            event<PasswordChanged>(
-                "com.dreweaster.ddd.kestrel.domain.aggregates.user.PasswordChanged",
-                PasswordChangedMapper.deserialiser,
-            )
-            event<UsernameChanged>(
-                "com.dreweaster.ddd.kestrel.domain.aggregates.user.UsernameChanged",
-                UsernameChangedMapper.deserialiser,
-            )
-            event<UserLocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserLocked") { UserLocked }
-            event<UserUnlocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserUnlocked") { UserUnlocked }
-            event<FailedLoginAttemptsIncremented>("com.dreweaster.ddd.kestrel.domain.aggregates.user.FailedLoginAttemptsIncremented") { FailedLoginAttemptsIncremented }
+            tag("user-event") {
+                event<UserRegistered>(
+                    "com.dreweaster.ddd.kestrel.domain.aggregates.user.UserRegistered",
+                    UserRegisteredMapper.deserialiser,
+                )
+                event<PasswordChanged>(
+                    "com.dreweaster.ddd.kestrel.domain.aggregates.user.PasswordChanged",
+                    PasswordChangedMapper.deserialiser,
+                )
+                event<UsernameChanged>(
+                    "com.dreweaster.ddd.kestrel.domain.aggregates.user.UsernameChanged",
+                    UsernameChangedMapper.deserialiser,
+                )
+                event<UserLocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserLocked") { UserLocked }
+                event<UserUnlocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserUnlocked") { UserUnlocked }
+                event<FailedLoginAttemptsIncremented>("com.dreweaster.ddd.kestrel.domain.aggregates.user.FailedLoginAttemptsIncremented") {
+                    FailedLoginAttemptsIncremented
+                }
+            }
         }
-    }
 }

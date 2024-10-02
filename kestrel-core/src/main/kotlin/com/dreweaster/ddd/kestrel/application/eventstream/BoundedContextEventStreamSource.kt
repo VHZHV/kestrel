@@ -11,17 +11,16 @@ interface BoundedContextName {
     val name: String
 }
 
-class BoundedContextEventStreamSources(sources: List<Pair<BoundedContextName, BoundedContextEventStreamSource>>) {
-
+class BoundedContextEventStreamSources(
+    sources: List<Pair<BoundedContextName, BoundedContextEventStreamSource>>,
+) {
     private val sourcesMap = sources.toMap()
 
     operator fun get(name: BoundedContextName) = sourcesMap[name]
 }
 
 interface BoundedContextEventStreamSource {
-
     class EventHandlersBuilder {
-
         private var handlers: Map<KClass<out DomainEvent>, (suspend (DomainEvent, EventMetadata) -> Unit)> = emptyMap()
 
         fun <E : DomainEvent> withHandler(
@@ -42,7 +41,10 @@ interface BoundedContextEventStreamSource {
     )
 }
 
-data class EventStreamSubscriberConfiguration(val name: String, val edenPolicy: EventStreamSubscriptionEdenPolicy)
+data class EventStreamSubscriberConfiguration(
+    val name: String,
+    val edenPolicy: EventStreamSubscriptionEdenPolicy,
+)
 
 data class EventMetadata(
     val eventId: EventId,
