@@ -17,15 +17,13 @@ abstract class BoundedContextHttpEventStreamSourceFactory(val name: BoundedConte
         configuration: BoundedContextHttpEventStreamSourceConfiguration,
         offsetManager: OffsetManager,
         jobManager: JobManager,
-    ): BoundedContextHttpEventStreamSource {
-        return BoundedContextHttpEventStreamSource(
-            httpClient = httpClient,
-            configuration = configuration,
-            jobManager = jobManager,
-            offsetManager = offsetManager,
-            eventMappers = mappers.build(),
-        )
-    }
+    ): BoundedContextHttpEventStreamSource = BoundedContextHttpEventStreamSource(
+        httpClient = httpClient,
+        configuration = configuration,
+        jobManager = jobManager,
+        offsetManager = offsetManager,
+        eventMappers = mappers.build(),
+    )
 
     class EventMappers {
 
