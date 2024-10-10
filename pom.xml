@@ -10,12 +10,12 @@
     <version>0-SNAPSHOT</version>
     <modules>
         <module>kestrel-core</module>
-        <module>kestrel-example</module>
-        <module>kestrel-inmemory-backend</module>
-        <module>kestrel-json</module>
-        <module>kestrel-jdbc-backend</module>
-        <module>kestrel-http-event-streams</module>
         <module>kestrel-dropwizard-metrics</module>
+        <module>kestrel-example</module>
+        <module>kestrel-http-event-streams</module>
+        <module>kestrel-inmemory-backend</module>
+        <module>kestrel-jdbc-backend</module>
+        <module>kestrel-json</module>
         <module>kestrel-prometheus-metrics</module>
     </modules>
     <packaging>pom</packaging>
@@ -106,6 +106,30 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>artifact-registry</id>
+            <url>artifactregistry://europe-west2-maven.pkg.dev/hozah-artifacts/java</url>
+        </snapshotRepository>
+        <repository>
+            <id>artifact-registry</id>
+            <url>artifactregistry://europe-west2-maven.pkg.dev/hozah-artifacts/java</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>artifact-registry</id>
+            <url>artifactregistry://europe-west2-maven.pkg.dev/hozah-artifacts/java</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <pluginManagement>
@@ -198,5 +222,12 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <extensions>
+            <extension>
+                <groupId>com.google.cloud.artifactregistry</groupId>
+                <artifactId>artifactregistry-maven-wagon</artifactId>
+                <version>2.2.3</version>
+            </extension>
+        </extensions>
     </build>
 </project>

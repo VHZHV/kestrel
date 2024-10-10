@@ -43,3 +43,9 @@ after_pipeline:
       - name: Publish Test Results
         commands:
           - test-results gen-pipeline-report
+
+promotions:
+  - name: Publish
+    pipeline_file: publish.yaml
+    auto_promote:
+      when: result = 'passed' AND tag =~ '.+'
