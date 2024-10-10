@@ -10,11 +10,8 @@ import java.time.Duration
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-class ScheduledExecutorServiceJobManager(
-    private val clusterManager: ClusterManager,
-    private val scheduler: ScheduledExecutorService,
-) : JobManager {
-
+class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterManager, private val scheduler: ScheduledExecutorService) :
+    JobManager {
     private val logger = LoggerFactory.getLogger(ScheduledExecutorServiceJobManager::class.java)
 
     override fun scheduleManyTimes(repeatSchedule: Duration, job: Job) {
