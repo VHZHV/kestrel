@@ -10,20 +10,22 @@ import com.google.inject.Singleton
 import org.slf4j.LoggerFactory
 
 @Singleton
-class HelloNewUser @Inject constructor(boundedContexts: BoundedContextEventStreamSources) :
-    StatelessEventConsumer(boundedContexts) {
+class HelloNewUser
+    @Inject
+    constructor(
+        boundedContexts: BoundedContextEventStreamSources,
+    ) : StatelessEventConsumer(boundedContexts) {
+        private val logger = LoggerFactory.getLogger(HelloNewUser::class.java)
 
-    private val logger = LoggerFactory.getLogger(HelloNewUser::class.java)
+        init {
+            consumer {
 
-    init {
-        consumer {
+                subscribe(context = UserContext, subscriptionName = "hello-new-user", edenPolicy = FROM_NOW) {
 
-            subscribe(context = UserContext, subscriptionName = "hello-new-user", edenPolicy = FROM_NOW) {
-
-                event<UserRegistered> { event, _ ->
-                    logger.info("Hello ${event.username}!")
+                    event<UserRegistered> { event, _ ->
+                        logger.info("Hello ${event.username}!")
+                    }
                 }
-            }
-        }.start()
+            }.start()
+        }
     }
-}
