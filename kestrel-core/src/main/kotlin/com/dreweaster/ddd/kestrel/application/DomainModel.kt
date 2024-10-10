@@ -11,27 +11,36 @@ object IdGenerator {
 }
 
 data class ProcessManagerCorrelationId(val value: String = IdGenerator.randomId())
+
 data class AggregateId(val value: String = IdGenerator.randomId())
+
 data class CommandId(val value: String = IdGenerator.randomId())
+
 data class CausationId(val value: String = IdGenerator.randomId())
+
 data class CorrelationId(val value: String = IdGenerator.randomId())
+
 data class EventId(val value: String = IdGenerator.randomId())
 
 sealed class CommandHandlingResult<E : DomainEvent>
-data class SuccessResult<E : DomainEvent>(val generatedEvents: List<E>, val deduplicated: Boolean = false) :
-    CommandHandlingResult<E>()
 
-data class RejectionResult<E : DomainEvent>(val error: Throwable, val deduplicated: Boolean = false) :
-    CommandHandlingResult<E>()
+data class SuccessResult<E : DomainEvent>(val generatedEvents: List<E>, val deduplicated: Boolean = false) : CommandHandlingResult<E>()
+
+data class RejectionResult<E : DomainEvent>(val error: Throwable, val deduplicated: Boolean = false) : CommandHandlingResult<E>()
 
 class ConcurrentModificationResult<E : DomainEvent> : CommandHandlingResult<E>()
+
 class UnexpectedExceptionResult<E : DomainEvent>(val ex: Throwable) : CommandHandlingResult<E>()
 
 // General errors
 object UnsupportedCommandInEdenBehaviour : RuntimeException()
+
 object UnsupportedCommandInCurrentBehaviour : RuntimeException()
+
 object AggregateInstanceAlreadyExists : RuntimeException()
+
 object UnsupportedEventInEdenBehaviour : RuntimeException()
+
 object UnsupportedEventInCurrentBehaviour : RuntimeException()
 
 data class CommandEnvelope<C : DomainCommand>(
@@ -42,15 +51,12 @@ data class CommandEnvelope<C : DomainCommand>(
 )
 
 interface AggregateRoot<C : DomainCommand, E : DomainEvent> {
-
     suspend infix fun handleCommandEnvelope(commandEnvelope: CommandEnvelope<C>): CommandHandlingResult<E>
 
-    suspend infix fun handleCommand(command: C): CommandHandlingResult<E> =
-        handleCommandEnvelope(CommandEnvelope(command))
+    suspend infix fun handleCommand(command: C): CommandHandlingResult<E> = handleCommandEnvelope(CommandEnvelope(command))
 }
 
 interface DomainModel {
-
     fun <C : DomainCommand, E : DomainEvent, S : AggregateState> aggregateRootOf(
         aggregateType: Aggregate<C, E, S>,
         aggregateId: AggregateId = AggregateId(),

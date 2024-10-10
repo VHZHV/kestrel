@@ -10,7 +10,6 @@ class EventSourcedDomainModel(
     private val backend: Backend,
     private val commandDeduplicationStrategyFactory: CommandDeduplicationStrategyFactory,
 ) : DomainModel {
-
     private var reporters: List<DomainModelReporter> = emptyList()
 
     override fun addReporter(reporter: DomainModelReporter) {
@@ -34,24 +33,24 @@ class EventSourcedDomainModel(
         private val aggregateId: AggregateId,
         private val reportingContext: ReportingContext<C, E, S>,
     ) : AggregateRoot<C, E> {
-
         override suspend fun handleCommandEnvelope(commandEnvelope: CommandEnvelope<C>): CommandHandlingResult<E> {
             reportingContext.startedHandling(commandEnvelope)
 
-            val result = try {
-                val aggregate = recoverAggregate()
+            val result =
+                try {
+                    val aggregate = recoverAggregate()
 
-                reportingContext.startedApplyingCommand()
+                    reportingContext.startedApplyingCommand()
 
-                when {
-                    aggregate.isNew -> handleEdenCommand(aggregate, commandEnvelope)
-                    else -> handleCommand(aggregate, commandEnvelope)
+                    when {
+                        aggregate.isNew -> handleEdenCommand(aggregate, commandEnvelope)
+                        else -> handleCommand(aggregate, commandEnvelope)
+                    }
+                } catch (ocex: OptimisticConcurrencyException) {
+                    ConcurrentModificationResult()
+                } catch (ex: Throwable) {
+                    UnexpectedExceptionResult(ex)
                 }
-            } catch (ocex: OptimisticConcurrencyException) {
-                ConcurrentModificationResult()
-            } catch (ex: Throwable) {
-                UnexpectedExceptionResult(ex)
-            }
 
             reportingContext.finishedHandling(result)
             return result
@@ -87,14 +86,18 @@ class EventSourcedDomainModel(
                 // TODO: If command was handled before but was rejected would be good to return the same rejection here
                 // TODO: Would require storing special RejectionEvents in the aggregate's event history
                 val generatedEvents =
-                    aggregate.previousEvents.filter { it.causationId.value == commandEnvelope.commandId.value }
+                    aggregate.previousEvents
+                        .filter { it.causationId.value == commandEnvelope.commandId.value }
                         .map { it.rawEvent }
                 val result = SuccessResult(generatedEvents, deduplicated = true)
                 reportingContext.commandApplicationAccepted(generatedEvents, deduplicated = true)
                 return result
             } else {
                 if (aggregateType.blueprint.edenCommandHandler.canHandle(commandEnvelope.command)) {
-                    if (!aggregateType.blueprint.edenCommandHandler.options(commandEnvelope.command).allowInAllBehaviours) {
+                    if (!aggregateType.blueprint.edenCommandHandler
+                            .options(commandEnvelope.command)
+                            .allowInAllBehaviours
+                    ) {
                         // Can't issue an eden command once aggregate already exists
                         val rejectionResult = RejectionResult<E>(AggregateInstanceAlreadyExists)
                         reportingContext.commandApplicationRejected(rejectionResult.error, rejectionResult.deduplicated)
@@ -125,18 +128,18 @@ class EventSourcedDomainModel(
             commandEnvelope: CommandEnvelope<C>,
             aggregate: RecoveredAggregate<E, S>,
             commandApplicationResult: Try<List<E>>,
-        ): CommandHandlingResult<E> {
-            return when (commandApplicationResult) {
-                is Try.Success -> {
-                    val generatedEvents = commandApplicationResult.get()
+        ): CommandHandlingResult<E> = when (commandApplicationResult) {
+            is Try.Success -> {
+                val generatedEvents = commandApplicationResult.get()
 
-                    reportingContext.commandApplicationAccepted(generatedEvents)
+                reportingContext.commandApplicationAccepted(generatedEvents)
 
-                    if (generatedEvents.isNotEmpty()) {
-                        reportingContext.startedPersistingEvents(generatedEvents, aggregate.version)
+                if (generatedEvents.isNotEmpty()) {
+                    reportingContext.startedPersistingEvents(generatedEvents, aggregate.version)
 
-                        try {
-                            val persistedEvents = backend.saveEvents(
+                    try {
+                        val persistedEvents =
+                            backend.saveEvents(
                                 aggregateType,
                                 aggregateId,
                                 CausationId(commandEnvelope.commandId.value),
@@ -144,31 +147,30 @@ class EventSourcedDomainModel(
                                 aggregate.version,
                                 commandEnvelope.correlationId,
                             )
-                            reportingContext.finishedPersistingEvents(persistedEvents)
-                        } catch (ex: Throwable) {
-                            reportingContext.finishedPersistingEvents(ex)
-                            throw ex
-                        }
+                        reportingContext.finishedPersistingEvents(persistedEvents)
+                    } catch (ex: Throwable) {
+                        reportingContext.finishedPersistingEvents(ex)
+                        throw ex
                     }
-
-                    SuccessResult(generatedEvents)
                 }
 
-                else -> {
-                    reportingContext.commandApplicationRejected(commandApplicationResult.cause)
-                    RejectionResult(commandApplicationResult.cause)
-                }
+                SuccessResult(generatedEvents)
+            }
+
+            else -> {
+                reportingContext.commandApplicationRejected(commandApplicationResult.cause)
+                RejectionResult(commandApplicationResult.cause)
             }
         }
 
         // TODO: Check canHandle on event handlers
-        private suspend fun recoverAggregate(): RecoveredAggregate<E, S> {
-            return try {
-                reportingContext.startedRecoveringAggregate()
+        private suspend fun recoverAggregate(): RecoveredAggregate<E, S> = try {
+            reportingContext.startedRecoveringAggregate()
 
-                val previousEvents = backend.loadEvents(aggregateType, aggregateId)
+            val previousEvents = backend.loadEvents(aggregateType, aggregateId)
 
-                val aggregate = previousEvents.fold(
+            val aggregate =
+                previousEvents.fold(
                     RecoveredAggregate<E, S>(
                         version = -1,
                         previousEvents = emptyList(),
@@ -179,7 +181,8 @@ class EventSourcedDomainModel(
                     acc.copy(
                         version = e.sequenceNumber,
                         previousEvents = acc.previousEvents + e,
-                        state = if (acc.state != null) {
+                        state =
+                        if (acc.state != null) {
                             aggregateType.blueprint.eventHandler(
                                 acc.state,
                                 e.rawEvent,
@@ -190,12 +193,11 @@ class EventSourcedDomainModel(
                         builder = acc.builder.addEvent(e),
                     )
                 }
-                reportingContext.finishedRecoveringAggregate(aggregate.rawEvents, aggregate.version, aggregate.state)
-                aggregate
-            } catch (ex: Throwable) {
-                reportingContext.finishedRecoveringAggregate(ex)
-                throw ex
-            }
+            reportingContext.finishedRecoveringAggregate(aggregate.rawEvents, aggregate.version, aggregate.state)
+            aggregate
+        } catch (ex: Throwable) {
+            reportingContext.finishedRecoveringAggregate(ex)
+            throw ex
         }
     }
 }
@@ -206,7 +208,6 @@ data class RecoveredAggregate<E : DomainEvent, S : AggregateState>(
     val state: S?,
     val builder: CommandDeduplicationStrategyBuilder,
 ) {
-
     val isNew = previousEvents.isEmpty()
     val rawEvents = previousEvents.map { it.rawEvent }
 
