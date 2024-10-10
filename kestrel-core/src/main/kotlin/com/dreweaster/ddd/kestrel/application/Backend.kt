@@ -11,17 +11,13 @@ import java.time.Instant
 import kotlin.reflect.KClass
 
 interface Backend {
-
     suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> persistAggregate(
         aggregateType: A,
         aggregateId: AggregateId,
         commandHandler: suspend (PersistedAggregate<E, A>) -> GeneratedEvents<E>,
     ): Try<List<PersistedEvent<E>>>
 
-    suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
-        aggregateType: A,
-        aggregateId: AggregateId,
-    ): List<PersistedEvent<E>>
+    suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(aggregateType: A, aggregateId: AggregateId): List<PersistedEvent<E>>
 
     suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
@@ -38,17 +34,9 @@ interface Backend {
         correlationId: CorrelationId? = null,
     ): List<PersistedEvent<E>>
 
-    suspend fun <E : DomainEvent> loadEventStream(
-        tags: Set<DomainEventTag>,
-        afterOffset: Long,
-        batchSize: Int,
-    ): EventStream
+    suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterOffset: Long, batchSize: Int): EventStream
 
-    suspend fun <E : DomainEvent> loadEventStream(
-        tags: Set<DomainEventTag>,
-        afterInstant: Instant,
-        batchSize: Int,
-    ): EventStream
+    suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterInstant: Instant, batchSize: Int): EventStream
 
     suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> persistProcessManagerEvent(
         eventId: EventId,
@@ -74,18 +62,18 @@ interface ProcessManagerRetryStrategy {
 }
 
 sealed class ProcessManagerProcessingResult
-object Continue : ProcessManagerProcessingResult()
-object Finished : ProcessManagerProcessingResult()
-object NothingToProcess : ProcessManagerProcessingResult()
-object AlreadyProcessed : ProcessManagerProcessingResult()
-data class Failed(val failureCode: String, val message: String? = null, val ex: Throwable?) :
-    ProcessManagerProcessingResult()
 
-data class GeneratedEvents<E : DomainEvent>(
-    val events: List<E>,
-    val causationId: CausationId,
-    val correlationId: CorrelationId? = null,
-)
+object Continue : ProcessManagerProcessingResult()
+
+object Finished : ProcessManagerProcessingResult()
+
+object NothingToProcess : ProcessManagerProcessingResult()
+
+object AlreadyProcessed : ProcessManagerProcessingResult()
+
+data class Failed(val failureCode: String, val message: String? = null, val ex: Throwable?) : ProcessManagerProcessingResult()
+
+data class GeneratedEvents<E : DomainEvent>(val events: List<E>, val causationId: CausationId, val correlationId: CorrelationId? = null)
 
 object OptimisticConcurrencyException : RuntimeException()
 
@@ -140,22 +128,14 @@ data class StreamEvent(
 )
 
 enum class SerialisationContentType(private val value: String) {
-
     JSON("application/json"),
     ;
 
-    fun value(): String {
-        return value
-    }
+    fun value(): String = value
 }
 
 interface EventPayloadMapper {
-
-    fun <E : DomainEvent> deserialiseEvent(
-        serialisedPayload: String,
-        serialisedEventType: String,
-        serialisedEventVersion: Int,
-    ): E
+    fun <E : DomainEvent> deserialiseEvent(serialisedPayload: String, serialisedEventType: String, serialisedEventVersion: Int): E
 
     fun <E : DomainEvent> serialiseEvent(event: E): PayloadSerialisationResult
 }
@@ -163,7 +143,6 @@ interface EventPayloadMapper {
 data class PayloadSerialisationResult(val payload: String, val contentType: SerialisationContentType, val version: Int)
 
 open class MappingException : RuntimeException {
-
     constructor(message: String) : super(message)
 
     constructor(message: String, cause: Throwable) : super(message, cause)

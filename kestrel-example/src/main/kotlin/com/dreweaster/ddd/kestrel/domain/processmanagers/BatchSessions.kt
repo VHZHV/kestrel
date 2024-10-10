@@ -152,11 +152,8 @@ data class ParkingSessionQueued(
     val finishedAt: Instant,
 ) : BatchSessionsEvent()
 
-data class ParkingSessionBatchCreated(
-    val carParkId: AggregateId,
-    val vehicle: Vehicle,
-    val sessions: List<QueuedParkingSession>,
-) : BatchSessionsEvent()
+data class ParkingSessionBatchCreated(val carParkId: AggregateId, val vehicle: Vehicle, val sessions: List<QueuedParkingSession>) :
+    BatchSessionsEvent()
 
 object BufferingPeriodEnded : BatchSessionsEvent()
 data class TimedOutCreatingBatch(val completedBatchId: AggregateId) : BatchSessionsEvent()
@@ -167,11 +164,7 @@ sealed class BatchSessionsState : ProcessManagerState
 object Empty : BatchSessionsState()
 object Finished : BatchSessionsState()
 
-data class Buffering(
-    val carParkId: AggregateId,
-    val vehicle: Vehicle,
-    val buffer: ParkingSessionBuffer,
-) : BatchSessionsState() {
+data class Buffering(val carParkId: AggregateId, val vehicle: Vehicle, val buffer: ParkingSessionBuffer) : BatchSessionsState() {
 
     val bufferedSessions = buffer.sessions
 
@@ -195,12 +188,11 @@ data class CreatingBatch(
         return copy(futureBuffer = newFutureBuffer)
     }
 
-    fun withNextFutureBatch(): CreatingBatch =
-        copy(
-            completedBatchId = AggregateId(), // TODO: create deterministic (but unique to this batch) ID
-            completedBatch = completedFutureBatches.first(),
-            completedFutureBatches = completedFutureBatches.drop(1),
-        )
+    fun withNextFutureBatch(): CreatingBatch = copy(
+        completedBatchId = AggregateId(), // TODO: create deterministic (but unique to this batch) ID
+        completedBatch = completedFutureBatches.first(),
+        completedFutureBatches = completedFutureBatches.drop(1),
+    )
 
     val isBufferingFutureSessions = futureBuffer?.sessions?.isNotEmpty() ?: false
 
@@ -220,12 +212,11 @@ data class ParkingSessionBuffer(
     operator fun plus(queuedParkingSession: QueuedParkingSession) = copy(sessions = sessions + queuedParkingSession)
 
     companion object {
-        fun startNew(parkingSession: QueuedParkingSession, carPark: BatchSessionsContext.CarPark) =
-            ParkingSessionBuffer(
-                sessions = listOf(parkingSession),
-                bufferingStartedAt = parkingSession.startedAt,
-                bufferingWillCompleteAt = parkingSession.startedAt + carPark.priceCappingPeriod,
-            )
+        fun startNew(parkingSession: QueuedParkingSession, carPark: BatchSessionsContext.CarPark) = ParkingSessionBuffer(
+            sessions = listOf(parkingSession),
+            bufferingStartedAt = parkingSession.startedAt,
+            bufferingWillCompleteAt = parkingSession.startedAt + carPark.priceCappingPeriod,
+        )
     }
 }
 
@@ -413,7 +404,8 @@ interface ProcessManagerEventScheduler {
         fun onEventTriggered(notification: ProcessManagerScheduledEventNotification<C, E, S>)
     }
 
-    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>) // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    // DomainModel impl will attach as listener and handle event serialisation/deserialisation
+    fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> registerListener(listener: Listener<C, E, S>)
 
     fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> schedule(
         event: ProcessManagerScheduledEvent<C, E, S>,
@@ -430,11 +422,7 @@ interface DomainModel {
     // Not guaranteed delivery so still would need the separate event that's polling domainModel.processManagerOf(BatchSessions).instancesAwaitingProcessing(pageable)
     // Only works if current app instance is the one that persisted the event
     interface ProcessManagerListener<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> {
-        fun onProcessManagerEventPersisted(
-            processManagerType: ProcessManager<C, E, S>,
-            processManagerId: AggregateId,
-            event: E,
-        )
+        fun onProcessManagerEventPersisted(processManagerType: ProcessManager<C, E, S>, processManagerId: AggregateId, event: E)
     }
 
     fun <C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState> addProcessManagerListener(
@@ -461,7 +449,7 @@ fun main() {
                 ) {
                     is SuccessResult -> Try.success(Unit)
                     is RejectionResult -> Try.failure(result.error) // TODO: Probably terminal so suspend the PM
-                    is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException) // TODO: Retry a few times before suspending
+                    is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException) // TODO: Retry before suspending
                     is UnexpectedExceptionResult -> Try.failure(result.ex) // TODO: Retry a few times before suspending
                 }
             }

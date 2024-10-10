@@ -76,16 +76,16 @@ class PrometheusDomainModelReporter : DomainModelReporter {
             .register()
     }
 
-    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) =
-        true
+    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) = true
 
     override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(
         aggregateType: Aggregate<C, E, S>,
         aggregateId: AggregateId,
     ): CommandHandlingProbe<C, E, S> = PrometheusCommandHandlingProbe(aggregateType)
 
-    inner class PrometheusCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(private val aggregateType: Aggregate<C, E, S>) :
-        CommandHandlingProbe<C, E, S> {
+    inner class PrometheusCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+        private val aggregateType: Aggregate<C, E, S>,
+    ) : CommandHandlingProbe<C, E, S> {
 
         private var command: CommandEnvelope<C>? = null
 

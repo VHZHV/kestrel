@@ -7,13 +7,10 @@ data class Pageable(val pageNumber: Int, val pageSize: Int) {
 }
 
 interface Page<T> {
-
     companion object {
-
         fun <T> single(values: List<T>, pageable: Pageable): Page<T> = SinglePage(values, pageable)
 
-        fun <T> slice(values: List<T>, totalElements: Int, pageable: Pageable): Page<T> =
-            SlicedPage(values, totalElements, pageable)
+        fun <T> slice(values: List<T>, totalElements: Int, pageable: Pageable): Page<T> = SlicedPage(values, totalElements, pageable)
     }
 
     val isFirst: Boolean
@@ -49,11 +46,7 @@ data class SinglePage<T>(override val values: List<T>, private val pageable: Pag
     override val hasNext = false
 }
 
-data class SlicedPage<T>(
-    override val values: List<T>,
-    override val totalElements: Int,
-    private val pageable: Pageable,
-) : Page<T> {
+data class SlicedPage<T>(override val values: List<T>, override val totalElements: Int, private val pageable: Pageable) : Page<T> {
     override val size = values.count()
     override val totalPages: Int =
         Try { (totalElements + pageable.pageSize - 1) / pageable.pageSize }.toOption().getOrElse(0)
