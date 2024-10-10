@@ -25,12 +25,8 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.util.toMap
 
-class UserRoutes @Inject constructor(
-    application: Application,
-    domainModel: DomainModel,
-    userReadModel: UserReadModel,
-    backend: Backend,
-) : BaseRoutes() {
+class UserRoutes @Inject constructor(application: Application, domainModel: DomainModel, userReadModel: UserReadModel, backend: Backend) :
+    BaseRoutes() {
 
     init {
         application.routing {
@@ -75,13 +71,12 @@ class UserRoutes @Inject constructor(
         }
     }
 
-    private fun userToJsonObject(user: UserDTO) =
-        jsonObject(
-            "id" to user.id,
-            "username" to user.username,
-            "password" to user.password,
-            "locked" to user.locked,
-        )
+    private fun userToJsonObject(user: UserDTO) = jsonObject(
+        "id" to user.id,
+        "username" to user.username,
+        "password" to user.password,
+        "locked" to user.locked,
+    )
 }
 
 data class RegisterUserRequest(val id: AggregateId, val username: String, val password: String) {
