@@ -32,7 +32,7 @@ blocks:
         always:
           commands:
             - |-
-              if [[ "$SEMAPHORE_JOB_NAME" = "Gradle" ]]; then
+              if [[ "$SEMAPHORE_JOB_NAME" = "Maven" ]]; then
                 test-results publish **/target/surefire-reports/*.xml &
                 (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
                 wait
