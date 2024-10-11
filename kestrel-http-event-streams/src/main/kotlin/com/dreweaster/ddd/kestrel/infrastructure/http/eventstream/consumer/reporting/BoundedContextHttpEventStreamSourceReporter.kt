@@ -155,7 +155,5 @@ object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
         }
     }
 
-    override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe {
-        return ConsoleProbe()
-    }
+    override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe = ConsoleProbe()
 }
