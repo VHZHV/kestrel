@@ -1,0 +1,27 @@
+---
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: 0.3.9_hozah
+    schedule:
+      interval: weekly
+      time: "05:00"
+      timezone: Europe/London
+      day: monday
+    groups:
+      all:
+        patterns:
+          - "*"
+  - package-ecosystem: maven
+    directory: /
+    target-branch: 0.3.9_hozah
+    schedule:
+      interval: weekly
+      time: "05:00"
+      timezone: Europe/London
+      day: monday
+    groups:
+      all:
+        patterns:
+          - "*"
