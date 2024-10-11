@@ -1,3 +1,3 @@
 # kestrel
 
-Simple DDD toolkit for Kotlin
+### Simple DDD toolkit for Kotlin
