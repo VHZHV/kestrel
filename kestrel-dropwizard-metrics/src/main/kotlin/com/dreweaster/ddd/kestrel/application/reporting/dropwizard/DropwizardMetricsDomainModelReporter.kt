@@ -17,21 +17,19 @@ import com.dreweaster.ddd.kestrel.domain.AggregateState
 import com.dreweaster.ddd.kestrel.domain.DomainCommand
 import com.dreweaster.ddd.kestrel.domain.DomainEvent
 
-class DropwizardMetricsDomainModelReporter(
-    private val metricRegistry: MetricRegistry,
-    private val metricNamePrefix: String,
-) : DomainModelReporter {
+class DropwizardMetricsDomainModelReporter(private val metricRegistry: MetricRegistry, private val metricNamePrefix: String) :
+    DomainModelReporter {
 
-    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) =
-        true
+    override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) = true
 
     override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> createProbe(
         aggregateType: Aggregate<C, E, S>,
         aggregateId: AggregateId,
     ): CommandHandlingProbe<C, E, S> = DropwizardMetricsCommandHandlingProbe(aggregateType)
 
-    inner class DropwizardMetricsCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(private val aggregateType: Aggregate<C, E, S>) :
-        CommandHandlingProbe<C, E, S> {
+    inner class DropwizardMetricsCommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+        private val aggregateType: Aggregate<C, E, S>,
+    ) : CommandHandlingProbe<C, E, S> {
 
         private var command: CommandEnvelope<C>? = null
 
@@ -185,34 +183,31 @@ class DropwizardMetricsDomainModelReporter(
             }
         }
 
-        private fun commandSpecificMetricName(command: CommandEnvelope<C>, vararg names: String) =
-            MetricRegistry.name(
-                listOf(
-                    metricNamePrefix,
-                    aggregateType.blueprint.name,
-                    "commands",
-                    command.command::class.simpleName,
-                ).joinToString("."),
-                *names,
-            )
+        private fun commandSpecificMetricName(command: CommandEnvelope<C>, vararg names: String) = MetricRegistry.name(
+            listOf(
+                metricNamePrefix,
+                aggregateType.blueprint.name,
+                "commands",
+                command.command::class.simpleName,
+            ).joinToString("."),
+            *names,
+        )
 
-        private fun eventSpecificMetricName(event: E, vararg names: String) =
-            MetricRegistry.name(
-                listOf(
-                    metricNamePrefix,
-                    aggregateType.blueprint.name,
-                    "events",
-                    event::class.simpleName,
-                ).joinToString("."),
-                *names,
-            )
+        private fun eventSpecificMetricName(event: E, vararg names: String) = MetricRegistry.name(
+            listOf(
+                metricNamePrefix,
+                aggregateType.blueprint.name,
+                "events",
+                event::class.simpleName,
+            ).joinToString("."),
+            *names,
+        )
 
-        private fun aggregateTypeSpecificMetricName(vararg names: String) =
-            MetricRegistry.name(
-                listOf(metricNamePrefix, aggregateType.blueprint.name, "command-handling").joinToString(
-                    ".",
-                ),
-                *names,
-            )
+        private fun aggregateTypeSpecificMetricName(vararg names: String) = MetricRegistry.name(
+            listOf(metricNamePrefix, aggregateType.blueprint.name, "command-handling").joinToString(
+                ".",
+            ),
+            *names,
+        )
     }
 }

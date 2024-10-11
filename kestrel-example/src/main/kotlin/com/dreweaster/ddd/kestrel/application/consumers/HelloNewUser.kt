@@ -10,8 +10,7 @@ import com.google.inject.Singleton
 import org.slf4j.LoggerFactory
 
 @Singleton
-class HelloNewUser @Inject constructor(boundedContexts: BoundedContextEventStreamSources) :
-    StatelessEventConsumer(boundedContexts) {
+class HelloNewUser @Inject constructor(boundedContexts: BoundedContextEventStreamSources) : StatelessEventConsumer(boundedContexts) {
 
     private val logger = LoggerFactory.getLogger(HelloNewUser::class.java)
 

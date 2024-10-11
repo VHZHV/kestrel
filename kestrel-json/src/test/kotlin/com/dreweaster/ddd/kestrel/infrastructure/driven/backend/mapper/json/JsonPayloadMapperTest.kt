@@ -290,8 +290,7 @@ class JsonEventPayloadMapperTests : FeatureSpec() {
     }
 }
 
-class EventWithComplexMigrationHistoryClassName3(val forename: String, val surname: String, val active: Boolean) :
-    DomainEvent {
+class EventWithComplexMigrationHistoryClassName3(val forename: String, val surname: String, val active: Boolean) : DomainEvent {
     override val tag = DomainEventTag("dummy-event")
 }
 
@@ -299,11 +298,12 @@ class EventWithNoMigrationHistory(val forename: String, val surname: String, val
     override val tag = DomainEventTag("dummy-event")
 }
 
-class EventWithComplexMigrationHistoryMappingConfigurer :
-    JsonEventMappingConfigurer<EventWithComplexMigrationHistoryClassName3> {
+class EventWithComplexMigrationHistoryMappingConfigurer : JsonEventMappingConfigurer<EventWithComplexMigrationHistoryClassName3> {
 
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<EventWithComplexMigrationHistoryClassName3>) {
-        configurationFactory.create("com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1")
+        configurationFactory.create(
+            "com.dreweaster.kestrel.infrastructure.driven.backend.mapper.json.EventWithComplexMigrationHistoryClassName1",
+        )
             .migrateFormat(migrateVersion1ToVersion2)
             .migrateFormat(migrateVersion2ToVersion3)
             .migrateFormat(migrateVersion3ToVersion4)
