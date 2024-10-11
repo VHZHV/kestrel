@@ -278,21 +278,19 @@ class SwitchableDeduplicationStrategyFactory : CommandDeduplicationStrategyFacto
         deduplicationEnabled = false
     }
 
-    override fun newBuilder(): CommandDeduplicationStrategyBuilder =
-        object : CommandDeduplicationStrategyBuilder {
-            private var causationIds: Set<CausationId> = emptySet()
+    override fun newBuilder(): CommandDeduplicationStrategyBuilder = object : CommandDeduplicationStrategyBuilder {
+        private var causationIds: Set<CausationId> = emptySet()
 
-            override fun addEvent(domainEvent: PersistedEvent<*>): CommandDeduplicationStrategyBuilder {
-                causationIds += domainEvent.causationId
-                return this
-            }
-
-            override fun build(): CommandDeduplicationStrategy =
-                object : CommandDeduplicationStrategy {
-                    override fun isDuplicate(commandId: CommandId) =
-                        if (deduplicationEnabled) causationIds.contains(CausationId(commandId.value)) else false
-                }
+        override fun addEvent(domainEvent: PersistedEvent<*>): CommandDeduplicationStrategyBuilder {
+            causationIds += domainEvent.causationId
+            return this
         }
+
+        override fun build(): CommandDeduplicationStrategy = object : CommandDeduplicationStrategy {
+            override fun isDuplicate(commandId: CommandId) =
+                if (deduplicationEnabled) causationIds.contains(CausationId(commandId.value)) else false
+        }
+    }
 }
 
 class MockBackend : InMemoryBackend() {
@@ -344,18 +342,16 @@ class MockBackend : InMemoryBackend() {
         rawEvents: List<E>,
         expectedSequenceNumber: Long,
         correlationId: CorrelationId?,
-    ): List<PersistedEvent<E>> {
-        return when {
-            optimisticConcurrencyExceptionOnSave -> throw OptimisticConcurrencyException
-            saveErrorState -> throw IllegalStateException()
-            else -> super.saveEvents(
-                aggregateType,
-                aggregateId,
-                causationId,
-                rawEvents,
-                expectedSequenceNumber,
-                correlationId,
-            )
-        }
+    ): List<PersistedEvent<E>> = when {
+        optimisticConcurrencyExceptionOnSave -> throw OptimisticConcurrencyException
+        saveErrorState -> throw IllegalStateException()
+        else -> super.saveEvents(
+            aggregateType,
+            aggregateId,
+            causationId,
+            rawEvents,
+            expectedSequenceNumber,
+            correlationId,
+        )
     }
 }
