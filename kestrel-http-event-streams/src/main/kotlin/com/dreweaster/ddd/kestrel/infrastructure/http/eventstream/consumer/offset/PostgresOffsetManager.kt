@@ -8,7 +8,6 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offse
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.PostgresOffsetManager.Offsets.name
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.PostgresOffsetManager.Offsets.primaryKeyConstraintConflictTarget
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.select
 
 class PostgresOffsetManager(private val database: Database) : OffsetManager {
 
@@ -21,7 +20,7 @@ class PostgresOffsetManager(private val database: Database) : OffsetManager {
     }
 
     override suspend fun getOffset(offsetKey: String) = database.transaction {
-        Offsets.slice(lastProcessedOffset).select { name eq offsetKey }
+        Offsets.select(lastProcessedOffset).where { name eq offsetKey }
             .map { row -> row[lastProcessedOffset] }.firstOrNull()
     }
 
