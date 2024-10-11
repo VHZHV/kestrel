@@ -25,7 +25,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <kotlin.version>2.0.20</kotlin.version>
+        <kotlin.version>2.0.21</kotlin.version>
         <slf4j.version>1.7.36</slf4j.version>
 
         <bintray.subject>dreweaster</bintray.subject>
@@ -223,6 +223,7 @@
             </plugins>
         </pluginManagement>
         <extensions>
+            <!-- https://mvnrepository.com/artifact/com.google.cloud.artifactregistry/artifactregistry-maven-wagon -->
             <extension>
                 <groupId>com.google.cloud.artifactregistry</groupId>
                 <artifactId>artifactregistry-maven-wagon</artifactId>
