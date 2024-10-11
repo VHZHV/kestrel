@@ -24,6 +24,5 @@ blocks:
             - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
             - cd "${REPO_NAME}"
 
-            - ./gradlew publish ${COMMON_GRADLE_OPTS}
-              -Pversion="${SEMAPHORE_GIT_TAG_NAME:-0.0.${SEMAPHORE_GIT_PR_NUMBER}-SNAPSHOT}"
-              -PversionDesc="$(git log "${SEMAPHORE_GIT_PR_SHA:-${SEMAPHORE_GIT_SHA}}" --format='%s' -1)"
+            - mvn versions:set -DnewVersion="${SEMAPHORE_GIT_TAG_NAME:-0.0.${SEMAPHORE_GIT_PR_NUMBER}-SNAPSHOT}"
+            - ./mvnw deploy -pl kestrel-core,kestrel-http-event-streams,kestrel-inmemory-backend,kestrel-jdbc-backend,kestrel-json,kestrel-prometheus-metrics -am
