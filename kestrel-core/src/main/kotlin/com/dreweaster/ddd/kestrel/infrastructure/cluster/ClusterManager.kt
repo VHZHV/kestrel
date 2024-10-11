@@ -3,9 +3,9 @@ package com.dreweaster.ddd.kestrel.infrastructure.cluster
 import java.time.Instant
 
 interface ClusterManager {
-
     interface Listener {
         fun onElected(at: Instant)
+
         fun onUnelected(at: Instant)
     }
 
@@ -15,7 +15,6 @@ interface ClusterManager {
 }
 
 object LocalClusterManager : ClusterManager {
-
     override suspend fun iAmTheLeader() = true
 
     override fun addListener(listener: ClusterManager.Listener) {

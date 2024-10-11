@@ -31,7 +31,9 @@ object UserContextHttpEventStreamSourceFactory : BoundedContextHttpEventStreamSo
             )
             event<UserLocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserLocked") { UserLocked }
             event<UserUnlocked>("com.dreweaster.ddd.kestrel.domain.aggregates.user.UserUnlocked") { UserUnlocked }
-            event<FailedLoginAttemptsIncremented>("com.dreweaster.ddd.kestrel.domain.aggregates.user.FailedLoginAttemptsIncremented") { FailedLoginAttemptsIncremented }
+            event<FailedLoginAttemptsIncremented>("com.dreweaster.ddd.kestrel.domain.aggregates.user.FailedLoginAttemptsIncremented") {
+                FailedLoginAttemptsIncremented
+            }
         }
     }
 }

@@ -81,18 +81,14 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
     @Singleton
     @Provides
-    fun jobManager(clusterManager: ClusterManager): JobManager {
-        return ScheduledExecutorServiceJobManager(
-            clusterManager = clusterManager,
-            scheduler = Executors.newSingleThreadScheduledExecutor(),
-        )
-    }
+    fun jobManager(clusterManager: ClusterManager): JobManager = ScheduledExecutorServiceJobManager(
+        clusterManager = clusterManager,
+        scheduler = Executors.newSingleThreadScheduledExecutor(),
+    )
 
     @Singleton
     @Provides
-    fun offsetManager(database: Database): OffsetManager {
-        return PostgresOffsetManager(database)
-    }
+    fun offsetManager(database: Database): OffsetManager = PostgresOffsetManager(database)
 
     @Singleton
     @Provides
@@ -142,10 +138,7 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
     @Singleton
     @Provides
-    fun provideBackend(
-        database: Database,
-        synchronousJdbcReadModels: Set<SynchronousJdbcReadModel>,
-    ): Backend {
+    fun provideBackend(database: Database, synchronousJdbcReadModels: Set<SynchronousJdbcReadModel>): Backend {
         @Suppress("UNCHECKED_CAST")
         val payloadMapper = JsonEventPayloadMapper(
             Gson(),
@@ -164,29 +157,27 @@ class ExampleModule(val application: Application) : AbstractModule() {
     private fun createHttpEventStreamSourceConfiguration(
         context: BoundedContextName,
         config: ApplicationConfig,
-    ): BoundedContextHttpEventStreamSourceConfiguration {
-        return object : BoundedContextHttpEventStreamSourceConfiguration {
+    ): BoundedContextHttpEventStreamSourceConfiguration = object : BoundedContextHttpEventStreamSourceConfiguration {
 
-            override val producerEndpointProtocol = config.property("contexts.${context.name}.protocol").getString()
+        override val producerEndpointProtocol = config.property("contexts.${context.name}.protocol").getString()
 
-            override val producerEndpointHostname = config.property("contexts.${context.name}.host").getString()
+        override val producerEndpointHostname = config.property("contexts.${context.name}.host").getString()
 
-            override val producerEndpointPort = config.property("contexts.${context.name}.port").getString().toInt()
+        override val producerEndpointPort = config.property("contexts.${context.name}.port").getString().toInt()
 
-            override val producerEndpointPath = config.property("contexts.${context.name}.path").getString()
+        override val producerEndpointPath = config.property("contexts.${context.name}.path").getString()
 
-            override fun batchSizeFor(subscriptionName: String) =
-                config.property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size").getString()
-                    .toInt()
+        override fun batchSizeFor(subscriptionName: String) =
+            config.property("contexts.${context.name}.subscriptions.$subscriptionName.batch_size").getString()
+                .toInt()
 
-            override fun repeatScheduleFor(subscriptionName: String) = Duration.ofMillis(
-                config.property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule").getString()
-                    .toLong(),
-            )
+        override fun repeatScheduleFor(subscriptionName: String) = Duration.ofMillis(
+            config.property("contexts.${context.name}.subscriptions.$subscriptionName.repeat_schedule").getString()
+                .toLong(),
+        )
 
-            override fun enabled(subscriptionName: String) =
-                config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
-                    ?.toBoolean() ?: true
-        }
+        override fun enabled(subscriptionName: String) =
+            config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
+                ?.toBoolean() ?: true
     }
 }
