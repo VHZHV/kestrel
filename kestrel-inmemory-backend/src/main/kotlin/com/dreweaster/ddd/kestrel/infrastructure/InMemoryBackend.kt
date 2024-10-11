@@ -46,17 +46,13 @@ open class InMemoryBackend : Backend {
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
         aggregateId: AggregateId,
-    ): List<PersistedEvent<E>> {
-        return persistedEventsFor(aggregateType, aggregateId)
-    }
+    ): List<PersistedEvent<E>> = persistedEventsFor(aggregateType, aggregateId)
 
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
         aggregateId: AggregateId,
         afterSequenceNumber: Long,
-    ): List<PersistedEvent<E>> {
-        return persistedEventsFor(aggregateType, aggregateId).filter { it.sequenceNumber > afterSequenceNumber }
-    }
+    ): List<PersistedEvent<E>> = persistedEventsFor(aggregateType, aggregateId).filter { it.sequenceNumber > afterSequenceNumber }
 
     override suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> saveEvents(
         aggregateType: A,
@@ -123,39 +119,25 @@ open class InMemoryBackend : Backend {
         TODO("not implemented")
     }
 
-    override suspend fun <E : DomainEvent> loadEventStream(
-        tags: Set<DomainEventTag>,
-        afterOffset: Long,
-        batchSize: Int,
-    ): EventStream {
+    override suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterOffset: Long, batchSize: Int): EventStream =
         throw UnsupportedOperationException()
-    }
 
-    override suspend fun <E : DomainEvent> loadEventStream(
-        tags: Set<DomainEventTag>,
-        afterInstant: Instant,
-        batchSize: Int,
-    ): EventStream {
+    override suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterInstant: Instant, batchSize: Int): EventStream =
         throw UnsupportedOperationException()
-    }
 
     @Suppress("UNCHECKED_CAST")
     private fun <E : DomainEvent> persistedEventsFor(
         aggregateType: Aggregate<*, E, *>,
         aggregateId: AggregateId,
-    ): List<PersistedEvent<E>> {
-        return events.filter { e ->
-            val event = e as Pair<PersistedEvent<E>, Long>
-            event.first.aggregateType == aggregateType && event.first.aggregateId == aggregateId
-        }.map { event -> event.first as PersistedEvent<E> }
-    }
+    ): List<PersistedEvent<E>> = events.filter { e ->
+        val event = e as Pair<PersistedEvent<E>, Long>
+        event.first.aggregateType == aggregateType && event.first.aggregateId == aggregateId
+    }.map { event -> event.first as PersistedEvent<E> }
 
     private fun <E : DomainEvent> aggregateHasBeenModified(
         aggregateType: Aggregate<*, E, *>,
         aggregateId: AggregateId,
         expectedSequenceNumber: Long?,
-    ): Boolean {
-        return persistedEventsFor(aggregateType, aggregateId)
-            .lastOrNull()?.sequenceNumber?.equals(expectedSequenceNumber)?.not() == true
-    }
+    ): Boolean = persistedEventsFor(aggregateType, aggregateId)
+        .lastOrNull()?.sequenceNumber?.equals(expectedSequenceNumber)?.not() == true
 }

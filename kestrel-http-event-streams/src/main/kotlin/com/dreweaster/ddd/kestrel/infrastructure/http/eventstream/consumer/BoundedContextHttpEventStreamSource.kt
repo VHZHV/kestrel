@@ -202,17 +202,16 @@ class BoundedContextHttpEventStreamSource(
             }
         }
 
-        private fun extractEventMetadata(eventJson: JsonObject) =
-            EventMetadata(
-                EventId(eventJson["id"].string),
-                AggregateId(eventJson["aggregate_id"].string),
-                CausationId(eventJson["causation_id"].string),
-                eventJson["correlation_id"].nullString?.let { CorrelationId(it) },
-                eventJson["sequence_number"].long,
-            )
+        private fun extractEventMetadata(eventJson: JsonObject) = EventMetadata(
+            EventId(eventJson["id"].string),
+            AggregateId(eventJson["aggregate_id"].string),
+            CausationId(eventJson["causation_id"].string),
+            eventJson["correlation_id"].nullString?.let { CorrelationId(it) },
+            eventJson["sequence_number"].long,
+        )
 
-        private suspend fun AsyncHttpClient.execute(request: Request): Response {
-            return suspendCancellableCoroutine { cont: CancellableContinuation<Response> ->
+        private suspend fun AsyncHttpClient.execute(request: Request): Response =
+            suspendCancellableCoroutine { cont: CancellableContinuation<Response> ->
                 this.executeRequest(
                     request,
                     object : AsyncCompletionHandler<Unit>() {
@@ -227,7 +226,6 @@ class BoundedContextHttpEventStreamSource(
                 )
                 Unit
             }
-        }
     }
 }
 
@@ -287,38 +285,36 @@ object FromNow : HttpEventStreamSubscriptionEdenPolicy() {
         val now = Instant.now() // cache now() once so doesn't refresh on every request
 
         return object : RequestFactory {
-            override fun createRequest(lastProcessedOffset: Long?): Request {
-                return if (lastProcessedOffset != null) {
-                    val query = HttpJsonEventQuery(
-                        tags = tags,
-                        afterOffset = lastProcessedOffset,
-                        batchSize = batchSize,
-                    )
+            override fun createRequest(lastProcessedOffset: Long?): Request = if (lastProcessedOffset != null) {
+                val query = HttpJsonEventQuery(
+                    tags = tags,
+                    afterOffset = lastProcessedOffset,
+                    batchSize = batchSize,
+                )
 
-                    val url = query.eventsUrlFor(
-                        protocol = subscriberConfiguration.producerEndpointProtocol,
-                        hostname = subscriberConfiguration.producerEndpointHostname,
-                        port = subscriberConfiguration.producerEndpointPort,
-                        path = subscriberConfiguration.producerEndpointPath,
-                    )
+                val url = query.eventsUrlFor(
+                    protocol = subscriberConfiguration.producerEndpointProtocol,
+                    hostname = subscriberConfiguration.producerEndpointHostname,
+                    port = subscriberConfiguration.producerEndpointPort,
+                    path = subscriberConfiguration.producerEndpointPath,
+                )
 
-                    RequestBuilder().setUrl(url.toString()).setMethod("GET").build()
-                } else {
-                    val query = HttpJsonEventQuery(
-                        tags = tags,
-                        afterTimestamp = now,
-                        batchSize = batchSize,
-                    )
+                RequestBuilder().setUrl(url.toString()).setMethod("GET").build()
+            } else {
+                val query = HttpJsonEventQuery(
+                    tags = tags,
+                    afterTimestamp = now,
+                    batchSize = batchSize,
+                )
 
-                    val url = query.eventsUrlFor(
-                        protocol = subscriberConfiguration.producerEndpointProtocol,
-                        hostname = subscriberConfiguration.producerEndpointHostname,
-                        port = subscriberConfiguration.producerEndpointPort,
-                        path = subscriberConfiguration.producerEndpointPath,
-                    )
+                val url = query.eventsUrlFor(
+                    protocol = subscriberConfiguration.producerEndpointProtocol,
+                    hostname = subscriberConfiguration.producerEndpointHostname,
+                    port = subscriberConfiguration.producerEndpointPort,
+                    path = subscriberConfiguration.producerEndpointPath,
+                )
 
-                    RequestBuilder().setUrl(url.toString()).setMethod("GET").build()
-                }
+                RequestBuilder().setUrl(url.toString()).setMethod("GET").build()
             }
         }
     }

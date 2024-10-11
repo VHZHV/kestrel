@@ -1,0 +1,29 @@
+---
+version: v1.0
+name: Publish
+agent:
+  machine:
+    type: e1-standard-2
+
+global_job_config:
+  prologue:
+    commands_file: commands/set_vars_and_checkout.sh
+
+blocks:
+  - name: Publishing
+    dependencies: [ ]
+    task:
+      secrets:
+        - name: artifacts
+      jobs:
+        - name: Artifacts
+          commands:
+            - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
+            - wait
+
+            - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
+            - cd "${REPO_NAME}"
+
+            - ./gradlew publish ${COMMON_GRADLE_OPTS}
+              -Pversion="${SEMAPHORE_GIT_TAG_NAME:-0.0.${SEMAPHORE_GIT_PR_NUMBER}-SNAPSHOT}"
+              -PversionDesc="$(git log "${SEMAPHORE_GIT_PR_SHA:-${SEMAPHORE_GIT_SHA}}" --format='%s' -1)"

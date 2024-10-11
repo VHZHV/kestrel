@@ -4,7 +4,6 @@ name: Build
 agent:
   machine:
     type: e1-standard-2
-    os_image: ubuntu2004
 
 auto_cancel:
   queued:
@@ -14,27 +13,39 @@ fail_fast:
     when: "true"
 
 global_job_config:
-  env_vars:
-    - name: CLOUDSDK_CORE_PROJECT
-      value: hozah-permits
-  secrets:
-    - name: Permits cloud build key
   prologue:
-    commands:
-      - gcloud auth activate-service-account --key-file=.cloud-build.key
-      - checkout
+    commands_file: commands/set_vars_and_checkout.sh
 
 blocks:
-  - name: Build
+  - name: Verify
     task:
       jobs:
-        - name: Build
+        - name: Maven
           commands:
-            - substitutions=""
-            - substitutions+="TAG_NAME=${SEMAPHORE_GIT_TAG_NAME:-0.${SEMAPHORE_GIT_PR_NUMBER}.0}"
-            - substitutions+=",BRANCH_NAME=kestrel.$(echo
-              "${SEMAPHORE_GIT_PR_BRANCH:-master}" | tr '/' '.')"
-            - substitutions+=",SHORT_SHA=${SEMAPHORE_GIT_PR_SHA:-${SEMAPHORE_GIT_SHA}}"
+            - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
+            - wait
 
-            - gcloud builds submit --config=./cloudbuild_test.yaml
-              --substitutions="${substitutions}"
+            - cd "${REPO_NAME}"
+
+            - ./mvnw --threads=1.5C verify
+      epilogue:
+        always:
+          commands:
+            - |-
+              if [[ "$SEMAPHORE_JOB_NAME" = "Maven" ]]; then
+                test-results publish **/target/surefire-reports/*.xml &
+                (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
+                wait
+              fi
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Test Results
+        commands:
+          - test-results gen-pipeline-report
+
+promotions:
+  - name: Publish
+    pipeline_file: publish.yaml
+    auto_promote:
+      when: result = 'passed' AND tag =~ '.+'
