@@ -42,7 +42,12 @@ object User : Aggregate<UserCommand, UserEvent, UserState> {
                 apply {
                     event<PasswordChanged> { currentState, (_, newPassword) -> currentState.copy(password = newPassword) }
                     event<UsernameChanged> { currentState, (username) -> currentState.copy(username = username) }
-                    event<FailedLoginAttemptsIncremented> { currentState, _ -> currentState.copy(failedLoginAttempts = currentState.failedLoginAttempts + 1) }
+                    event<FailedLoginAttemptsIncremented> { currentState, _ ->
+                        currentState.copy(
+                            failedLoginAttempts =
+                            currentState.failedLoginAttempts + 1,
+                        )
+                    }
                     event<UserLocked> { (username, password, _), _ -> LockedUser(username, password) }
                 }
             }
