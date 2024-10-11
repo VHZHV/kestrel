@@ -27,7 +27,7 @@ blocks:
 
             - cd "${REPO_NAME}"
 
-            - ./mvnw --threads=1.5C verify
+            - ./mvnw --threads=1.5C verify --offline
       epilogue:
         always:
           commands:
