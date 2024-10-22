@@ -23,7 +23,11 @@
     <name>Kestrel</name>
 
     <properties>
+        <jdk.version>17</jdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
+        <kotlin.compiler.jvmTarget>${jdk.version}</kotlin.compiler.jvmTarget>
 
         <kotlin.version>2.0.21</kotlin.version>
         <slf4j.version>1.7.36</slf4j.version>
@@ -84,7 +88,7 @@
             <dependency>
                 <groupId>io.vavr</groupId>
                 <artifactId>vavr</artifactId>
-                <version>0.10.4</version>
+                <version>0.10.5</version>
             </dependency>
             <!-- https://mvnrepository.com/artifact/io.kotlintest/kotlintest -->
             <dependency>
@@ -155,8 +159,8 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
                     <configuration>
-                        <source>17</source>
-                        <target>17</target>
+                        <source>${jdk.version}</source>
+                        <target>${jdk.version}</target>
                     </configuration>
                 </plugin>
                 <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-maven-plugin -->
@@ -165,19 +169,19 @@
                     <artifactId>kotlin-maven-plugin</artifactId>
                     <version>${kotlin.version}</version>
                     <configuration>
-                        <jvmTarget>1.8</jvmTarget>
+                        <args>
+                            <arg>-Xjsr305=strict</arg>
+                        </args>
                     </configuration>
                     <executions>
                         <execution>
                             <id>compile</id>
-                            <phase>compile</phase>
                             <goals>
                                 <goal>compile</goal>
                             </goals>
                         </execution>
                         <execution>
                             <id>test-compile</id>
-                            <phase>test-compile</phase>
                             <goals>
                                 <goal>test-compile</goal>
                             </goals>
