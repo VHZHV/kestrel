@@ -16,7 +16,7 @@
         <module>kestrel-inmemory-backend</module>
         <module>kestrel-jdbc-backend</module>
         <module>kestrel-json</module>
-        <module>kestrel-prometheus-metrics</module>
+        <module>kestrel-opentelemetry-metrics</module>
     </modules>
     <packaging>pom</packaging>
 
