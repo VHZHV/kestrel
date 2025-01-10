@@ -19,6 +19,8 @@ global_job_config:
 blocks:
   - name: Verify
     task:
+      secrets:
+        - name: artifacts
       jobs:
         - name: Maven
           commands:
@@ -26,6 +28,7 @@ blocks:
             - wait
 
             - cd "${REPO_NAME}"
+            - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
 
             - ./mvnw --threads=1.5C verify
       epilogue:
