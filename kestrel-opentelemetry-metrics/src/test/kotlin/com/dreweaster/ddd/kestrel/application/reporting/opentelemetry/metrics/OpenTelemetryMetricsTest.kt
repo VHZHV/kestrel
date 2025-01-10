@@ -40,7 +40,7 @@ import com.github.tomakehurst.wiremock.http.Request
 import com.github.tomakehurst.wiremock.http.Response
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import io.kotest.assertions.timing.eventually
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
@@ -57,9 +57,11 @@ import kotlin.time.Duration.Companion.hours
 
 class EventWriteService(val domainModel: DomainModel) {
 
-    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
+    suspend fun doA(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
+    suspend fun doB(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {
