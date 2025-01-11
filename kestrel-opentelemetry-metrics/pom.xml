@@ -111,6 +111,7 @@
             <artifactId>opentelemetry-exporter-prometheus</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-sdk-common</artifactId>

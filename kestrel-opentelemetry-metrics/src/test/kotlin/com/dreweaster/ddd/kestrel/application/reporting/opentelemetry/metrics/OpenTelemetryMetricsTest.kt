@@ -44,7 +44,7 @@ import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
-import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
+import  io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.resources.Resource
@@ -57,11 +57,9 @@ import kotlin.time.Duration.Companion.hours
 
 class EventWriteService(val domainModel: DomainModel) {
 
-    suspend fun doA(id: String): CommandHandlingResult<Event> =
-        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
+    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doB(id: String): CommandHandlingResult<Event> =
-        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
+    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {

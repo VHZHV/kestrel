@@ -20,13 +20,11 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     val consumptionAttemptMeter: LongCounter = meter
         .counterBuilder("consumption_attempted")
         .setDescription("An attempt to read from the event stream")
-        .setUnit("1")
         .build()
 
     val eventHandledMeter: LongCounter = meter
         .counterBuilder("event_handled")
         .setDescription("An attempt to handle an event")
-        .setUnit("1")
         .build()
 
     val maxOffsetMeter: LongCounter = meter
@@ -44,13 +42,11 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     val offsetRetrievalMeter: LongCounter = meter
         .counterBuilder("offset_retrievals")
         .setDescription("Attempts to retrieve current stream's offset")
-        .setUnit("1")
         .build()
 
     val offsetStorageMeter: LongCounter = meter
         .counterBuilder("offset_stores")
         .setDescription("Attempts to store current stream's offset")
-        .setUnit("1")
         .build()
 
     private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)

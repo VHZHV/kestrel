@@ -32,31 +32,26 @@ class OpenTelemetryMetricsDomainModelReporter(openTelemetry: OpenTelemetry) : Do
     val commandExecution: LongCounter = meter
         .counterBuilder("aggregate_command_execution_total")
         .setDescription("Total aggregate commands executed")
-        .setUnit("1")
         .build()
 
     val eventsEmitted: LongCounter = meter
         .counterBuilder("aggregate_events_emitted_total")
         .setDescription("Total aggregate events emitted")
-        .setUnit("1")
         .build()
 
     val aggregateRecovery: LongCounter = meter
         .counterBuilder("aggregate_recovery_total")
         .setDescription("Total aggregates recovered")
-        .setUnit("1")
         .build()
 
     val applyCommand: LongCounter = meter
         .counterBuilder("aggregate_apply_command_total")
         .setDescription("Total aggregate commands applied")
-        .setUnit("1")
         .build()
 
     val persistEvents: LongCounter = meter
         .counterBuilder("aggregate_persist_events_total")
         .setDescription("Total calls to persist events for aggregate")
-        .setUnit("1")
         .build()
 
     override fun <C : DomainCommand, E : DomainEvent, S : AggregateState> supports(aggregateType: Aggregate<C, E, S>) = true
