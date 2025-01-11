@@ -50,7 +50,6 @@ import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.resources.Resource
 import org.asynchttpclient.DefaultAsyncHttpClient
 import org.asynchttpclient.RequestBuilder
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.hours
@@ -66,8 +65,8 @@ sealed interface Event : DomainEvent {
     override val tag: DomainEventTag
         get() = Companion.tag
 
-    object A : Event
-    object B : Event
+    data object A : Event
+    data object B : Event
 
     companion object {
         val tag = DomainEventTag("public")
@@ -75,8 +74,8 @@ sealed interface Event : DomainEvent {
 }
 
 sealed interface Command : DomainCommand {
-    object A : Command
-    object B : Command
+    data object A : Command
+    data object B : Command
 }
 
 sealed interface State : AggregateState {
@@ -117,10 +116,7 @@ object ProducingConsumingBoundedContext : BoundedContextName {
 
 class CycleEventConsumer(boundedContexts: BoundedContextEventStreamSources) : StatelessEventConsumer(boundedContexts) {
 
-    private val logger = LoggerFactory.getLogger(this::class.java)
-    val events = mutableListOf<Event>()
-
-    val mockServer = WireMockServer()
+    private val events = mutableListOf<Event>()
 
     init {
 
