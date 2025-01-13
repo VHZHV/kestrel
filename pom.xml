@@ -10,7 +10,6 @@
     <version>0-SNAPSHOT</version>
     <modules>
         <module>kestrel-core</module>
-        <module>kestrel-dropwizard-metrics</module>
         <module>kestrel-example</module>
         <module>kestrel-http-event-streams</module>
         <module>kestrel-inmemory-backend</module>
