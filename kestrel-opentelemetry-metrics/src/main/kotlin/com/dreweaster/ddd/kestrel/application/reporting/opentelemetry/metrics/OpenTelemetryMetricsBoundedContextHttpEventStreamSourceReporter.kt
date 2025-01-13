@@ -14,6 +14,10 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     private val context: BoundedContextName,
 ) : BoundedContextHttpEventStreamSourceReporter {
 
+    init {
+        System.err.println("OpenTelemetry: $openTelemetry")
+    }
+
     private val meter = openTelemetry.meterBuilder(
         BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found")
     )
