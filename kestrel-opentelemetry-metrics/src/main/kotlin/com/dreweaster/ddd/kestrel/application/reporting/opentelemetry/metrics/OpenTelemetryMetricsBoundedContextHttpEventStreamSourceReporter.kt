@@ -77,29 +77,24 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun finishedHandlingEvent() {
-            System.err.println("Finished handling event")
             eventHandledMeter.add(1, successAttributes.build())
         }
 
         override fun finishedHandlingEvent(ex: Throwable) {
-            System.err.println("Finished handling event with exception")
             eventHandledMeter.add(1, failureAttributes.build())
         }
 
         override fun startedConsuming() {}
         override fun finishedConsuming() {
-            System.err.println("Finished consuming")
             consumptionAttemptMeter.add(1, successAttributes.build())
         }
 
         override fun finishedConsuming(ex: Throwable) {
-            System.err.println("Finished consuming with exception")
             consumptionAttemptMeter.add(1, failureAttributes.build())
         }
 
         override fun startedFetchingEventStream() {}
         override fun finishedFetchingEventStream(maxOffset: Long) {
-            System.err.println("Finished fetching event stream")
             maxOffsetMeter.add(maxOffset, baseAttributes().build())
         }
 
@@ -108,18 +103,15 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
 
         override fun startedFetchingOffset() {}
         override fun finishedFetchingOffset() {
-            System.err.println("Finished fetching offset")
             offsetRetrievalMeter.add(1, successAttributes.build())
         }
 
         override fun finishedFetchingOffset(ex: Throwable) {
-            System.err.println("Finished fetching offset with exception")
             offsetRetrievalMeter.add(1, failureAttributes.build())
         }
 
         override fun startedSavingOffset() {}
         override fun finishedSavingOffset(offset: Long) {
-            System.err.println("Finished saving offset")
             // Sometimes reported as -1 (if value is unknown), but this isn't helpful to record
             if (offset >= 0) {
                 currentOffsetMeter.add(offset, baseAttributes().build())
@@ -128,7 +120,6 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun finishedSavingOffset(ex: Throwable) {
-            System.err.println("Finished saving offset with exception")
             offsetRetrievalMeter.add(1, failureAttributes.build())
         }
     }
