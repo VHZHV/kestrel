@@ -14,7 +14,9 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     private val context: BoundedContextName,
 ) : BoundedContextHttpEventStreamSourceReporter {
 
-    private val meter = openTelemetry.meterBuilder("com.dreweaster.ddd.kestrel.BoundedContextHttpEventStreamSourceReporter")
+    private val meter = openTelemetry.meterBuilder(
+        BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found")
+    )
         .build()
 
     val consumptionAttemptMeter: LongCounter = meter
