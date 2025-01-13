@@ -54,13 +54,13 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
 
     override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe =
-        OpenCensusBoundedContextHttpEventStreamSourceProbe(subscriberName)
+        OpenTelemetryBoundedContextHttpEventStreamSourceProbe(subscriberName)
 
     init {
         logger.info("Initialising Metrics")
     }
 
-    inner class OpenCensusBoundedContextHttpEventStreamSourceProbe(private val subscriberName: String) :
+    inner class OpenTelemetryBoundedContextHttpEventStreamSourceProbe(private val subscriberName: String) :
         BoundedContextHttpEventStreamSourceProbe {
 
         private fun baseAttributes() = Attributes.builder()
