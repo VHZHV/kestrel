@@ -99,6 +99,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
 
         override fun startedFetchingEventStream() {}
         override fun finishedFetchingEventStream(maxOffset: Long) {
+            System.err.println("Max Offset: $maxOffset, baseAttributes().build()")
             maxOffsetMeter.add(maxOffset, baseAttributes().build())
         }
 
