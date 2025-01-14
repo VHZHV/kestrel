@@ -6,6 +6,7 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.repor
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongCounter
+import io.opentelemetry.api.metrics.LongGauge
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -33,10 +34,11 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         .setDescription("An attempt to handle an event")
         .build()
 
-    val maxOffsetMeter: LongCounter = meter
-        .counterBuilder("max_offset")
+    val maxOffsetMeter: LongGauge = meter
+        .gaugeBuilder("max_offset")
         .setDescription("The maximum offset available for a consumer to consume to")
         .setUnit("events")
+        .ofLongs()
         .build()
 
     val currentOffsetMeter: LongCounter = meter
@@ -99,8 +101,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
 
         override fun startedFetchingEventStream() {}
         override fun finishedFetchingEventStream(maxOffset: Long) {
-            System.err.println("Max Offset: $maxOffset, baseAttributes().build()")
-            maxOffsetMeter.add(maxOffset, baseAttributes().build())
+            maxOffsetMeter.set(maxOffset, baseAttributes().build())
         }
 
         override fun finishedFetchingEventStream(ex: Throwable) {
