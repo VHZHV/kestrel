@@ -322,7 +322,7 @@ class OpenTelemetryMetricsTest :
                         httpClient.executeRequest(RequestBuilder().setUrl("http://localhost:$port/metrics").build())
                             .get().responseBody
 
-                    responseBody shouldContain "max_offset_events_total"
+                    responseBody shouldContain "max_offset_events"
                     responseBody shouldContain "event_handled_total"
                     responseBody shouldContain "offset_retrievals_total"
                     responseBody shouldContain "consumption_attempted_total"
