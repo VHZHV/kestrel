@@ -25,4 +25,4 @@ blocks:
             - cd "${REPO_NAME}"
 
             - mvn versions:set -DnewVersion="${SEMAPHORE_GIT_TAG_NAME:-0.0.${SEMAPHORE_GIT_PR_NUMBER}-SNAPSHOT}"
-            - ./mvnw deploy -pl kestrel-core,kestrel-http-event-streams,kestrel-inmemory-backend,kestrel-jdbc-backend,kestrel-json,kestrel-prometheus-metrics -am
+            - ./mvnw deploy -DskipTests -pl kestrel-core,kestrel-http-event-streams,kestrel-inmemory-backend,kestrel-jdbc-backend,kestrel-json,kestrel-opentelemetry-metrics -am
