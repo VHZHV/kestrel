@@ -11,16 +11,13 @@
     </parent>
 
     <artifactId>kestrel-opentelemetry-metrics</artifactId>
-    <properties>
-        <otel.version>1.45.0</otel.version>
-    </properties>
     <dependencyManagement>
         <dependencies>
             <!-- https://mvnrepository.com/artifact/io.opentelemetry/opentelemetry-bom -->
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>${otel.version}</version>
+                <version>1.46.0-alpha</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -28,7 +25,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom-alpha</artifactId>
-                <version>${otel.version}-alpha</version>
+                <version>1.46.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
