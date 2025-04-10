@@ -17,17 +17,23 @@ global_job_config:
     commands_file: commands/set_vars_and_checkout.sh
 
 blocks:
-  - name: Verify
+  - name: Test
+    dependencies: []
     task:
       secrets:
         - name: artifacts
       jobs:
         - name: Maven
           commands:
+            - curl -s "https://get.sdkman.io" | bash &
+            - cache restore sdkman-java &
             - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
             - wait
 
+            - source "$HOME/.sdkman/bin/sdkman-init.sh"
+
             - cd "${REPO_NAME}"
+            - sdk env install
             - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
 
             - ./mvnw --threads=1.5C verify
@@ -35,11 +41,12 @@ blocks:
         always:
           commands:
             - |-
-              if [[ "$SEMAPHORE_JOB_NAME" = "Maven" ]]; then
-                test-results publish **/target/surefire-reports/*.xml &
+              if [[ "$SEMAPHORE_JOB_NAME" = 'Maven' ]]; then
+                (npx --yes junit-report-merger ./combined.xml $(find -name 'TEST-*.xml' -path '*/target/surefire-reports/*') && test-results publish ./combined.xml) &
                 (cache delete "maven-${BRANCH_NAME}" && cache store "maven-${BRANCH_NAME}" ~/.m2) &
-                wait
+                if [[ "$BRANCH_NAME" = "${MAIN_BRANCH}" ]]; then (cache delete sdkman-java && cache store sdkman-java ~/.sdkman/candidates/java) & fi
               fi
+              wait
 after_pipeline:
   task:
     jobs:

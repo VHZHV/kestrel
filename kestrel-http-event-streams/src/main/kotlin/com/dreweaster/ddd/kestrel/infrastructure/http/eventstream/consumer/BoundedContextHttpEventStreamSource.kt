@@ -150,7 +150,8 @@ class BoundedContextHttpEventStreamSource(
 
         private suspend fun handleEvent(eventJson: JsonObject) {
             val eventType = eventJson["type"].string
-            probe.startedHandlingEvent(eventType)
+            // asdasdsada
+            probe.startedHandlingEvent(eventType, Instant.parse(eventJson["timestamp"].asString))
             try {
                 sourceEventTypeToMapper[eventType]?.let { mapper ->
                     val event = mapper(eventJson["payload"].asJsonObject)
