@@ -9,6 +9,8 @@ import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.metrics.LongGauge
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Duration
+import java.time.Instant
 
 class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     openTelemetry: OpenTelemetry,
@@ -16,7 +18,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
 ) : BoundedContextHttpEventStreamSourceReporter {
 
     private val meter = openTelemetry.meterBuilder(
-        BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found")
+        BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found"),
     )
         .build()
 
@@ -53,6 +55,13 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         .setDescription("Attempts to store current stream's offset")
         .build()
 
+    val eventLatency: LongGauge = meter
+        .gaugeBuilder("event_latency")
+        .setDescription("Event processor latency")
+        .setUnit("latency")
+        .ofLongs()
+        .build()
+
     private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
 
     override fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe =
@@ -75,7 +84,8 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         private val failureAttributes = baseAttributes()
             .put("result", "failure")
 
-        override fun startedHandlingEvent(eventType: String) {
+        override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
+            eventLatency.set(Duration.between(timestamp, Instant.now()).toSeconds(), baseAttributes().build())
         }
 
         override fun finishedHandlingEvent() {

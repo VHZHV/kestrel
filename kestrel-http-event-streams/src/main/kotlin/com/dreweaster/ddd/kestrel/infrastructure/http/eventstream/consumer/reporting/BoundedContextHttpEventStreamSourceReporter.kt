@@ -1,5 +1,7 @@
 package com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.reporting
 
+import java.time.Instant
+
 interface BoundedContextHttpEventStreamSourceReporter {
 
     fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe
@@ -31,7 +33,7 @@ interface BoundedContextHttpEventStreamSourceProbe {
 
     fun finishedSavingOffset(ex: Throwable)
 
-    fun startedHandlingEvent(eventType: String)
+    fun startedHandlingEvent(eventType: String, timestamp: Instant)
 
     fun finishedHandlingEvent()
 
@@ -92,8 +94,8 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
         probes.forEach { it.finishedSavingOffset(ex) }
     }
 
-    override fun startedHandlingEvent(eventType: String) {
-        probes.forEach { it.startedHandlingEvent(eventType) }
+    override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
+        probes.forEach { it.startedHandlingEvent(eventType, timestamp) }
     }
 
     override fun finishedHandlingEvent() {
@@ -145,7 +147,7 @@ object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
         override fun finishedSavingOffset(ex: Throwable) {
         }
 
-        override fun startedHandlingEvent(eventType: String) {
+        override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
         }
 
         override fun finishedHandlingEvent() {
