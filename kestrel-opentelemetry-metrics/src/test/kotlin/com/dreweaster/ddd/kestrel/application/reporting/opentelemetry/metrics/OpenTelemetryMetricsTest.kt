@@ -44,7 +44,7 @@ import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
-import  io.opentelemetry.exporter.prometheus.PrometheusHttpServer
+import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.resources.Resource
@@ -328,6 +328,7 @@ class OpenTelemetryMetricsTest :
                     responseBody shouldContain "consumption_attempted_total"
                     responseBody shouldContain "offset_stores_total"
                     responseBody shouldContain "current_offset_latest_events_total"
+                    responseBody shouldContain "event_latency"
                 }
             }
         }

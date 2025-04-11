@@ -18,11 +18,16 @@ blocks:
       jobs:
         - name: Artifacts
           commands:
+            - curl -s "https://get.sdkman.io" | bash &
+            - cache restore sdkman-java &
             - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
             - wait
 
-            - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
+            - source "$HOME/.sdkman/bin/sdkman-init.sh"
+
             - cd "${REPO_NAME}"
+            - sdk env install
+            - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
 
             - mvn versions:set -DnewVersion="${SEMAPHORE_GIT_TAG_NAME:-0.0.${SEMAPHORE_GIT_PR_NUMBER}-SNAPSHOT}"
             - ./mvnw deploy -DskipTests -pl kestrel-core,kestrel-http-event-streams,kestrel-inmemory-backend,kestrel-jdbc-backend,kestrel-json,kestrel-opentelemetry-metrics -am
