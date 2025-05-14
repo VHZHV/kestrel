@@ -9,12 +9,17 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import kotlin.time.toKotlinDuration
 
 class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterManager, private val scheduler: ScheduledExecutorService) :
     JobManager {
     private val logger = LoggerFactory.getLogger(ScheduledExecutorServiceJobManager::class.java)
 
     override fun scheduleManyTimes(repeatSchedule: Duration, job: Job) {
+        scheduleManyTimes(repeatSchedule, repeatSchedule.multipliedBy(10), job)
+    }
+
+    override fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job) {
         logger.debug("Scheduling job: '${job.name}'")
         // It's okay to block waiting for a future result as we're using a dedicated job execution context
         // It's important that we wait for a job to complete execution
@@ -23,8 +28,7 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
             {
                 try {
                     runBlocking {
-                        // TODO: Make timeout configurable - defaulting to 10x the repeat schedule
-                        withTimeout(repeatSchedule.toMillis() * 10) {
+                        withTimeout(timeout.toKotlinDuration()) {
                             ClusterSingletonJobWrapper(job).execute()
                         }
                     }

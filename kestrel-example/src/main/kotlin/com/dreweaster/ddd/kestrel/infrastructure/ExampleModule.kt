@@ -176,6 +176,10 @@ class ExampleModule(val application: Application) : AbstractModule() {
                 .toLong(),
         )
 
+        override fun timeoutFor(subscriptionName: String) =
+            config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.timeout")?.getString()
+                ?.toLong()?.let { Duration.ofMillis(it) } ?: repeatScheduleFor(subscriptionName).multipliedBy(10)
+
         override fun enabled(subscriptionName: String) =
             config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
                 ?.toBoolean() ?: true
