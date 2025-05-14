@@ -59,6 +59,8 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
 
     fun repeatScheduleFor(subscriptionName: String): Duration
 
+    fun timeoutFor(subscriptionName: String): Duration
+
     fun enabled(subscriptionName: String): Boolean
 }
 
@@ -106,7 +108,11 @@ class BoundedContextHttpEventStreamSource(
         )
 
         if (configuration.enabled(subscriberConfiguration.name)) {
-            jobManager.scheduleManyTimes(configuration.repeatScheduleFor(subscriberConfiguration.name), job)
+            jobManager.scheduleManyTimes(
+                repeatSchedule = configuration.repeatScheduleFor(subscriberConfiguration.name),
+                timeout = configuration.timeoutFor(subscriberConfiguration.name),
+                job = job,
+            )
         } else {
             logger.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")
         }
