@@ -15,6 +15,10 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
     JobManager {
     private val logger = LoggerFactory.getLogger(ScheduledExecutorServiceJobManager::class.java)
 
+    override fun scheduleManyTimes(repeatSchedule: Duration, job: Job) {
+        scheduleManyTimes(repeatSchedule, repeatSchedule.multipliedBy(10), job)
+    }
+
     override fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job) {
         logger.debug("Scheduling job: '${job.name}'")
         // It's okay to block waiting for a future result as we're using a dedicated job execution context
