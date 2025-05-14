@@ -23,7 +23,7 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
     }
 
     @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
-    override fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job) {
+    override fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job, eagerRetry: Boolean) {
         logger.debug("Scheduling job: '${job.name}'")
         // It's okay to block waiting for a future result as we're using a dedicated job execution context
         // It's important that we wait for a job to complete execution
@@ -33,9 +33,7 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
                 newSingleThreadContext(job.name).use {
                     try {
                         runBlocking {
-                            withTimeout(timeout.toKotlinDuration()) {
-                                ClusterSingletonJobWrapper(job).execute()
-                            }
+                            exec(repeatSchedule, job, timeout, eagerRetry)
                         }
                     } catch (ex: Exception) {
                         logger.error("Job execution failed: '${job.name}'", ex)
@@ -48,16 +46,25 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
         )
     }
 
+    private suspend fun exec(repeatSchedule: Duration, job: Job, timeoutMs: Duration, eagerRetry: Boolean) {
+        val backlogSize = withTimeout(timeoutMs.toKotlinDuration()) {
+            ClusterSingletonJobWrapper(job).execute()
+        }
+        // Repeat immediately if there is a backlog; do not wait for repeat schedule to process the backlog
+        if (eagerRetry) {
+            if (backlogSize > 0) exec(repeatSchedule, job, timeoutMs, eagerRetry)
+        }
+    }
+
     inner class ClusterSingletonJobWrapper(private val wrappedJob: Job) : Job {
         override val name = wrappedJob.name
 
-        override suspend fun execute() {
-            if (clusterManager.iAmTheLeader()) {
-                logger.debug("Running job '$name' as this instance is leader")
-                wrappedJob.execute()
-            } else {
-                logger.debug("Not running job '$name' as this instance is not leader")
-            }
+        override suspend fun execute(): Long = if (clusterManager.iAmTheLeader()) {
+            logger.debug("Running job '$name' as this instance is leader")
+            wrappedJob.execute()
+        } else {
+            logger.debug("Not running job '$name' as this instance is not leader")
+            0L
         }
     }
 }

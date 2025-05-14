@@ -5,10 +5,10 @@ import java.time.Duration
 interface Job {
     val name: String
 
-    suspend fun execute()
+    suspend fun execute(): Long
 }
 
 interface JobManager {
     fun scheduleManyTimes(repeatSchedule: Duration, job: Job)
-    fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job)
+    fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job, eagerRetry: Boolean = true)
 }
