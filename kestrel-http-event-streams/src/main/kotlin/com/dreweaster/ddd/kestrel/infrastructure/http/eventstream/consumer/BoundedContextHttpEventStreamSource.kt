@@ -59,8 +59,16 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
 
     fun repeatScheduleFor(subscriptionName: String): Duration
 
+    fun timeoutFor(subscriptionName: String): Duration
+
     fun enabled(subscriptionName: String): Boolean
 }
+
+data class FetchedEventStream(
+    // TODO what does it mean to have a null global offset?
+    val streamMaxOffset: Long,
+    val events: List<JsonObject>,
+)
 
 // TODO: Need to factor skipped events into batch size - i.e. always event minimum of batch size even if that means fetching multiple batches
 class BoundedContextHttpEventStreamSource(
@@ -106,7 +114,11 @@ class BoundedContextHttpEventStreamSource(
         )
 
         if (configuration.enabled(subscriberConfiguration.name)) {
-            jobManager.scheduleManyTimes(configuration.repeatScheduleFor(subscriberConfiguration.name), job)
+            jobManager.scheduleManyTimes(
+                repeatSchedule = configuration.repeatScheduleFor(subscriberConfiguration.name),
+                timeout = configuration.timeoutFor(subscriberConfiguration.name),
+                job = job,
+            )
         } else {
             logger.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")
         }
@@ -129,19 +141,24 @@ class BoundedContextHttpEventStreamSource(
                 batchSize = configuration.batchSizeFor(subscriberConfiguration.name),
             )
 
-        override suspend fun execute() {
+        override suspend fun execute(): Long {
             probe.startedConsuming()
             try {
                 val lastProcessedOffset = fetchOffset()
-                val events = fetchEvents(lastProcessedOffset)
+                val stream = fetchEvents(lastProcessedOffset)
 
-                events.forEach { event ->
+                val lastSavedOffset = stream.events.fold(lastProcessedOffset ?: 0L) { _, event ->
                     val eventOffset = event["offset"].long
                     handleEvent(event)
                     saveOffset(eventOffset)
+                    eventOffset
                 }
-
                 probe.finishedConsuming()
+                return if (stream.streamMaxOffset > -1) {
+                    stream.streamMaxOffset - lastSavedOffset
+                } else {
+                    0L
+                }
             } catch (ex: Exception) {
                 probe.finishedConsuming(ex)
                 throw ex
@@ -187,7 +204,7 @@ class BoundedContextHttpEventStreamSource(
             }
         }
 
-        private suspend fun fetchEvents(lastProcessedOffset: Long?): List<JsonObject> {
+        private suspend fun fetchEvents(lastProcessedOffset: Long?): FetchedEventStream {
             probe.startedFetchingEventStream()
             val request = requestFactory.createRequest(lastProcessedOffset)
             return try {
@@ -195,7 +212,10 @@ class BoundedContextHttpEventStreamSource(
                 val jsonBody = JsonParser.parseString(response.responseBody)
                 val maxOffset = jsonBody["max_offset"].asLong
                 probe.finishedFetchingEventStream(maxOffset)
-                jsonBody["events"].asJsonArray.toList().map { it.asJsonObject }
+                FetchedEventStream(
+                    streamMaxOffset = maxOffset,
+                    events = jsonBody["events"].asJsonArray.toList().map { it.asJsonObject },
+                )
             } catch (ex: Exception) {
                 probe.finishedFetchingEventStream(ex)
                 throw ex
