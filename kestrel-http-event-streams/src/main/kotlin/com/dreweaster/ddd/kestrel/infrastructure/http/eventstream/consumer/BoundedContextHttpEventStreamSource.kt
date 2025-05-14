@@ -64,6 +64,12 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
     fun enabled(subscriptionName: String): Boolean
 }
 
+data class FetchedEventStream(
+    // TODO what does it mean to have a null global offset?
+    val streamMaxOffset: Long,
+    val events: List<JsonObject>,
+)
+
 // TODO: Need to factor skipped events into batch size - i.e. always event minimum of batch size even if that means fetching multiple batches
 class BoundedContextHttpEventStreamSource(
     val httpClient: AsyncHttpClient,
@@ -139,17 +145,20 @@ class BoundedContextHttpEventStreamSource(
             probe.startedConsuming()
             try {
                 val lastProcessedOffset = fetchOffset()
-                val events = fetchEvents(lastProcessedOffset)
+                val stream = fetchEvents(lastProcessedOffset)
 
-                events.first.forEach { event ->
+                val lastSavedOffset = stream.events.fold(lastProcessedOffset ?: 0L) { _, event ->
                     val eventOffset = event["offset"].long
                     handleEvent(event)
                     saveOffset(eventOffset)
+                    eventOffset
                 }
-
                 probe.finishedConsuming()
-
-                return events.second
+                return if (stream.streamMaxOffset > -1) {
+                    stream.streamMaxOffset - lastSavedOffset
+                } else {
+                    0L
+                }
             } catch (ex: Exception) {
                 probe.finishedConsuming(ex)
                 throw ex
@@ -195,7 +204,7 @@ class BoundedContextHttpEventStreamSource(
             }
         }
 
-        private suspend fun fetchEvents(lastProcessedOffset: Long?): Pair<List<JsonObject>, Long> {
+        private suspend fun fetchEvents(lastProcessedOffset: Long?): FetchedEventStream {
             probe.startedFetchingEventStream()
             val request = requestFactory.createRequest(lastProcessedOffset)
             return try {
@@ -203,7 +212,10 @@ class BoundedContextHttpEventStreamSource(
                 val jsonBody = JsonParser.parseString(response.responseBody)
                 val maxOffset = jsonBody["max_offset"].asLong
                 probe.finishedFetchingEventStream(maxOffset)
-                jsonBody["events"].asJsonArray.toList().map { it.asJsonObject } to maxOffset
+                FetchedEventStream(
+                    streamMaxOffset = maxOffset,
+                    events = jsonBody["events"].asJsonArray.toList().map { it.asJsonObject },
+                )
             } catch (ex: Exception) {
                 probe.finishedFetchingEventStream(ex)
                 throw ex
