@@ -9,5 +9,5 @@ interface Job {
 }
 
 interface JobManager {
-    fun scheduleManyTimes(repeatSchedule: Duration, job: Job)
+    fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job)
 }
