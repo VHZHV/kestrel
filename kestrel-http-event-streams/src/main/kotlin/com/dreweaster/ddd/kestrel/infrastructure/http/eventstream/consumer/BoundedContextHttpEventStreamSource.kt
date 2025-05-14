@@ -59,6 +59,8 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
 
     fun repeatScheduleFor(subscriptionName: String): Duration
 
+    fun timeoutFor(subscriptionName: String): Duration
+
     fun enabled(subscriptionName: String): Boolean
 }
 
@@ -106,7 +108,11 @@ class BoundedContextHttpEventStreamSource(
         )
 
         if (configuration.enabled(subscriberConfiguration.name)) {
-            jobManager.scheduleManyTimes(configuration.repeatScheduleFor(subscriberConfiguration.name), job)
+            jobManager.scheduleManyTimes(
+                repeatSchedule = configuration.repeatScheduleFor(subscriberConfiguration.name),
+                timeout = configuration.timeoutFor(subscriberConfiguration.name),
+                job = job,
+            )
         } else {
             logger.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")
         }
@@ -129,19 +135,21 @@ class BoundedContextHttpEventStreamSource(
                 batchSize = configuration.batchSizeFor(subscriberConfiguration.name),
             )
 
-        override suspend fun execute() {
+        override suspend fun execute(): Long {
             probe.startedConsuming()
             try {
                 val lastProcessedOffset = fetchOffset()
                 val events = fetchEvents(lastProcessedOffset)
 
-                events.forEach { event ->
+                events.first.forEach { event ->
                     val eventOffset = event["offset"].long
                     handleEvent(event)
                     saveOffset(eventOffset)
                 }
 
                 probe.finishedConsuming()
+
+                return events.second
             } catch (ex: Exception) {
                 probe.finishedConsuming(ex)
                 throw ex
@@ -187,7 +195,7 @@ class BoundedContextHttpEventStreamSource(
             }
         }
 
-        private suspend fun fetchEvents(lastProcessedOffset: Long?): List<JsonObject> {
+        private suspend fun fetchEvents(lastProcessedOffset: Long?): Pair<List<JsonObject>, Long> {
             probe.startedFetchingEventStream()
             val request = requestFactory.createRequest(lastProcessedOffset)
             return try {
@@ -195,7 +203,7 @@ class BoundedContextHttpEventStreamSource(
                 val jsonBody = JsonParser.parseString(response.responseBody)
                 val maxOffset = jsonBody["max_offset"].asLong
                 probe.finishedFetchingEventStream(maxOffset)
-                jsonBody["events"].asJsonArray.toList().map { it.asJsonObject }
+                jsonBody["events"].asJsonArray.toList().map { it.asJsonObject } to maxOffset
             } catch (ex: Exception) {
                 probe.finishedFetchingEventStream(ex)
                 throw ex
