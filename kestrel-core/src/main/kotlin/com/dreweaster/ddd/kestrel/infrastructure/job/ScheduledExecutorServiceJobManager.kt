@@ -11,6 +11,8 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import kotlin.time.toKotlinDuration
 
+const val TIMEOUT_SCHEDULE_MULTIPLIER = 10L
+
 class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterManager, private val scheduler: ScheduledExecutorService) :
     JobManager {
     private val logger = LoggerFactory.getLogger(ScheduledExecutorServiceJobManager::class.java)
@@ -18,7 +20,7 @@ class ScheduledExecutorServiceJobManager(private val clusterManager: ClusterMana
     override fun scheduleManyTimes(repeatSchedule: Duration, job: Job) {
         scheduleManyTimes(
             repeatSchedule = repeatSchedule,
-            timeout = repeatSchedule.multipliedBy(10),
+            timeout = repeatSchedule.multipliedBy(TIMEOUT_SCHEDULE_MULTIPLIER),
             job = job,
             eagerRetry = true,
         )

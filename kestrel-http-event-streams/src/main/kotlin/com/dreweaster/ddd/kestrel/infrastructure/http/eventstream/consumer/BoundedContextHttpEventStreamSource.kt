@@ -67,7 +67,6 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
 }
 
 data class FetchedEventStream(
-    // TODO what does it mean to have a null global offset?
     val streamMaxOffset: Long,
     val events: List<JsonObject>,
 )

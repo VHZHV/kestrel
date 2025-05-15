@@ -30,6 +30,7 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.Bound
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.OffsetManager
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offset.PostgresOffsetManager
 import com.dreweaster.ddd.kestrel.infrastructure.job.ScheduledExecutorServiceJobManager
+import com.dreweaster.ddd.kestrel.infrastructure.job.TIMEOUT_SCHEDULE_MULTIPLIER
 import com.google.gson.Gson
 import com.google.inject.AbstractModule
 import com.google.inject.Binder
@@ -178,7 +179,7 @@ class ExampleModule(val application: Application) : AbstractModule() {
 
         override fun timeoutFor(subscriptionName: String) =
             config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.timeout")?.getString()
-                ?.toLong()?.let { Duration.ofMillis(it) } ?: repeatScheduleFor(subscriptionName).multipliedBy(10)
+                ?.toLong()?.let { Duration.ofMillis(it) } ?: repeatScheduleFor(subscriptionName).multipliedBy(TIMEOUT_SCHEDULE_MULTIPLIER)
 
         override fun eagerRetryFor(subscriptionName: String) =
             config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.eager_retry")?.getString()
