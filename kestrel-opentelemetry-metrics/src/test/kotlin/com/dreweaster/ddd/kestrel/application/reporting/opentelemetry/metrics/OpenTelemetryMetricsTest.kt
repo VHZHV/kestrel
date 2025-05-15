@@ -209,6 +209,8 @@ val config = object : BoundedContextHttpEventStreamSourceConfiguration {
 
     override fun timeoutFor(subscriptionName: String): Duration = repeatScheduleFor(subscriptionName).multipliedBy(10)
 
+    override fun eagerRetryFor(subscriptionName: String): Boolean = true
+
     override fun enabled(subscriptionName: String): Boolean = true
 }
 val httpClient = DefaultAsyncHttpClient()

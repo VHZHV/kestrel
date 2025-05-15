@@ -61,6 +61,8 @@ interface BoundedContextHttpEventStreamSourceConfiguration {
 
     fun timeoutFor(subscriptionName: String): Duration
 
+    fun eagerRetryFor(subscriptionName: String): Boolean
+
     fun enabled(subscriptionName: String): Boolean
 }
 
@@ -116,8 +118,9 @@ class BoundedContextHttpEventStreamSource(
         if (configuration.enabled(subscriberConfiguration.name)) {
             jobManager.scheduleManyTimes(
                 repeatSchedule = configuration.repeatScheduleFor(subscriberConfiguration.name),
-                timeout = configuration.timeoutFor(subscriberConfiguration.name),
                 job = job,
+                timeout = configuration.timeoutFor(subscriberConfiguration.name),
+                eagerRetry = configuration.eagerRetryFor(subscriberConfiguration.name),
             )
         } else {
             logger.warn("The event stream subscriber '${subscriberConfiguration.name}' is disabled")

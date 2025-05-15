@@ -10,5 +10,5 @@ interface Job {
 
 interface JobManager {
     fun scheduleManyTimes(repeatSchedule: Duration, job: Job)
-    fun scheduleManyTimes(repeatSchedule: Duration, timeout: Duration, job: Job, eagerRetry: Boolean = true)
+    fun scheduleManyTimes(repeatSchedule: Duration, job: Job, timeout: Duration, eagerRetry: Boolean)
 }

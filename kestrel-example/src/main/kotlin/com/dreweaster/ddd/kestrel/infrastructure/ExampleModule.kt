@@ -180,6 +180,10 @@ class ExampleModule(val application: Application) : AbstractModule() {
             config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.timeout")?.getString()
                 ?.toLong()?.let { Duration.ofMillis(it) } ?: repeatScheduleFor(subscriptionName).multipliedBy(10)
 
+        override fun eagerRetryFor(subscriptionName: String) =
+            config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.eager_retry")?.getString()
+                ?.toBoolean() ?: true
+
         override fun enabled(subscriptionName: String) =
             config.propertyOrNull("contexts.${context.name}.subscriptions.$subscriptionName.enabled")?.getString()
                 ?.toBoolean() ?: true
