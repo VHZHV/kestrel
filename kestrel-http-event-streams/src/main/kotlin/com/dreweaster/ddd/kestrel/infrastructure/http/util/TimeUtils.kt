@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 
 object TimeUtils {
-
     private val ZONE_ID_UTC = TimeZone.getTimeZone("UTC").toZoneId()
 
     private val DATE_FORMAT = DateTimeFormatter.ISO_INSTANT.withZone(ZONE_ID_UTC)

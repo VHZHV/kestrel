@@ -10,27 +10,47 @@ object IdGenerator {
     fun randomId(): String = UUID.randomUUID().toString().replace("-", "")
 }
 
-data class ProcessManagerCorrelationId(val value: String = IdGenerator.randomId())
+data class ProcessManagerCorrelationId(
+    val value: String = IdGenerator.randomId(),
+)
 
-data class AggregateId(val value: String = IdGenerator.randomId())
+data class AggregateId(
+    val value: String = IdGenerator.randomId(),
+)
 
-data class CommandId(val value: String = IdGenerator.randomId())
+data class CommandId(
+    val value: String = IdGenerator.randomId(),
+)
 
-data class CausationId(val value: String = IdGenerator.randomId())
+data class CausationId(
+    val value: String = IdGenerator.randomId(),
+)
 
-data class CorrelationId(val value: String = IdGenerator.randomId())
+data class CorrelationId(
+    val value: String = IdGenerator.randomId(),
+)
 
-data class EventId(val value: String = IdGenerator.randomId())
+data class EventId(
+    val value: String = IdGenerator.randomId(),
+)
 
 sealed class CommandHandlingResult<E : DomainEvent>
 
-data class SuccessResult<E : DomainEvent>(val generatedEvents: List<E>, val deduplicated: Boolean = false) : CommandHandlingResult<E>()
+data class SuccessResult<E : DomainEvent>(
+    val generatedEvents: List<E>,
+    val deduplicated: Boolean = false,
+) : CommandHandlingResult<E>()
 
-data class RejectionResult<E : DomainEvent>(val error: Throwable, val deduplicated: Boolean = false) : CommandHandlingResult<E>()
+data class RejectionResult<E : DomainEvent>(
+    val error: Throwable,
+    val deduplicated: Boolean = false,
+) : CommandHandlingResult<E>()
 
 class ConcurrentModificationResult<E : DomainEvent> : CommandHandlingResult<E>()
 
-class UnexpectedExceptionResult<E : DomainEvent>(val ex: Throwable) : CommandHandlingResult<E>()
+class UnexpectedExceptionResult<E : DomainEvent>(
+    val ex: Throwable,
+) : CommandHandlingResult<E>()
 
 // General errors
 object UnsupportedCommandInEdenBehaviour : RuntimeException()

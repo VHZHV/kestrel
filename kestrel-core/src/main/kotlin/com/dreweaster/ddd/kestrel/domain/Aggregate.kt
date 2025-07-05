@@ -5,7 +5,9 @@ import com.dreweaster.ddd.kestrel.application.UnsupportedEventInEdenBehaviour
 import io.vavr.control.Try
 import kotlin.reflect.KClass
 
-data class DomainEventTag(val value: String)
+data class DomainEventTag(
+    val value: String,
+)
 
 interface DomainEvent {
     val tag: DomainEventTag
@@ -18,14 +20,19 @@ interface AggregateState
 interface Aggregate<C : DomainCommand, E : DomainEvent, S : AggregateState> {
     val blueprint: AggregateBlueprint<C, E, S>
 
-    fun aggregate(name: String, init: AggregateBlueprint<C, E, S>.() -> Unit): AggregateBlueprint<C, E, S> {
+    fun aggregate(
+        name: String,
+        init: AggregateBlueprint<C, E, S>.() -> Unit,
+    ): AggregateBlueprint<C, E, S> {
         val aggregate = AggregateBlueprint<C, E, S>(name)
         aggregate.init()
         return aggregate
     }
 }
 
-class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>(val name: String) {
+class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+    val name: String,
+) {
     var capturedEden: EdenBehaviour<C, E, S>? = null
 
     var capturedBehaviours: Map<KClass<S>, Behaviour<C, E, S, *>> = emptyMap()
@@ -73,9 +80,15 @@ class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>
 
     val commandHandler: Handler<S, C, Try<List<E>>> =
         object : Handler<S, C, Try<List<E>>> {
-            override fun canHandle(t1: S, t2: C) = capturedBehaviours[t1::class]?.capturedReceive?.capturedHandlers?.get(t2::class) != null
+            override fun canHandle(
+                t1: S,
+                t2: C,
+            ) = capturedBehaviours[t1::class]?.capturedReceive?.capturedHandlers?.get(t2::class) != null
 
-            override fun invoke(t1: S, t2: C): Try<List<E>> {
+            override fun invoke(
+                t1: S,
+                t2: C,
+            ): Try<List<E>> {
                 if (!canHandle(t1, t2)) throw UnsupportedOperationException()
                 return capturedBehaviours[t1::class]
                     ?.capturedReceive
@@ -87,9 +100,15 @@ class AggregateBlueprint<C : DomainCommand, E : DomainEvent, S : AggregateState>
 
     val eventHandler: Handler<S, E, S> =
         object : Handler<S, E, S> {
-            override fun canHandle(t1: S, t2: E) = capturedBehaviours[t1::class]?.capturedApply?.capturedHandlers?.get(t2::class) != null
+            override fun canHandle(
+                t1: S,
+                t2: E,
+            ) = capturedBehaviours[t1::class]?.capturedApply?.capturedHandlers?.get(t2::class) != null
 
-            override fun invoke(t1: S, t2: E): S {
+            override fun invoke(
+                t1: S,
+                t2: E,
+            ): S {
                 if (!canHandle(t1, t2)) throw UnsupportedEventInCurrentBehaviour
                 return capturedBehaviours[t1::class]
                     ?.capturedApply
@@ -120,13 +139,18 @@ class EdenBehaviour<C : DomainCommand, E : DomainEvent, S : AggregateState> {
     }
 }
 
-data class EdenCommandOptions(val allowInAllBehaviours: Boolean)
+data class EdenCommandOptions(
+    val allowInAllBehaviours: Boolean,
+)
 
 class EdenReceive<C : DomainCommand, E : DomainEvent> {
     var capturedHandlers: Map<KClass<C>, Pair<(C) -> Try<List<E>>, EdenCommandOptions>> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
-    inline fun <reified Cmd : C> command(allowInAllBehaviours: Boolean = false, noinline handler: (Cmd) -> Try<List<E>>) {
+    inline fun <reified Cmd : C> command(
+        allowInAllBehaviours: Boolean = false,
+        noinline handler: (Cmd) -> Try<List<E>>,
+    ) {
         capturedHandlers += Cmd::class as KClass<C> to
             Pair(
                 handler as (C) -> Try<List<E>>,
@@ -191,9 +215,15 @@ class Apply<E : DomainEvent, S : AggregateState, out State : S> {
 }
 
 interface Handler<T1, T2, R> {
-    fun canHandle(t1: T1, t2: T2): Boolean
+    fun canHandle(
+        t1: T1,
+        t2: T2,
+    ): Boolean
 
-    operator fun invoke(t1: T1, t2: T2): R
+    operator fun invoke(
+        t1: T1,
+        t2: T2,
+    ): R
 }
 
 interface EdenEventHandler<T, R> {

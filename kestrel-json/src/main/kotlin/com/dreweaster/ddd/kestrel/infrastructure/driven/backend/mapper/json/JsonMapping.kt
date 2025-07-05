@@ -11,36 +11,44 @@ import com.google.gson.JsonParser
 import java.io.IOException
 
 interface JsonEventMappingConfiguration<E : DomainEvent> {
-
     fun migrateFormat(migration: ((JsonObject) -> JsonObject)): JsonEventMappingConfiguration<E>
 
     fun migrateClassName(className: String): JsonEventMappingConfiguration<E>
 
-    fun mappingFunctions(serialiseFunction: ((E) -> JsonObject), deserialiseFunction: ((JsonObject) -> E))
+    fun mappingFunctions(
+        serialiseFunction: ((E) -> JsonObject),
+        deserialiseFunction: ((JsonObject) -> E),
+    )
 }
 
 interface JsonEventMappingConfigurationFactory<E : DomainEvent> {
-
     fun create(initialEventClassName: String): JsonEventMappingConfiguration<E>
 }
 
 interface JsonEventMappingConfigurer<E : DomainEvent> {
-
     fun configure(configurationFactory: JsonEventMappingConfigurationFactory<E>)
 }
 
-class UnparseableJsonPayloadException(cause: Throwable, serialisedPayload: String) :
-    MappingException("Could not parse JSON event payload: $serialisedPayload", cause)
+class UnparseableJsonPayloadException(
+    cause: Throwable,
+    serialisedPayload: String,
+) : MappingException("Could not parse JSON event payload: $serialisedPayload", cause)
 
-class MissingDeserialiserException(serialisedEventType: String, serialisedEventVersion: Int) :
-    MappingException(
+class MissingDeserialiserException(
+    serialisedEventType: String,
+    serialisedEventVersion: Int,
+) : MappingException(
         "No deserialiser found for event_type = '$serialisedEventType' with event_version = '$serialisedEventVersion'",
     )
 
-class MissingSerialiserException(eventType: String) : MappingException("No serialiser found for event_type = '$eventType'")
+class MissingSerialiserException(
+    eventType: String,
+) : MappingException("No serialiser found for event_type = '$eventType'")
 
-class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>) : EventPayloadMapper {
-
+class JsonEventPayloadMapper(
+    private val gson: Gson,
+    eventMappers: List<JsonEventMappingConfigurer<DomainEvent>>,
+) : EventPayloadMapper {
     private var eventDeserialisers: Map<Pair<String, Int>, (String) -> DomainEvent> = emptyMap()
     private var eventSerialisers: Map<String, (DomainEvent) -> Pair<String, Int>> = emptyMap()
 
@@ -63,8 +71,9 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
     }
 
     override fun <E : DomainEvent> serialiseEvent(event: E): PayloadSerialisationResult {
-        val serialiser = eventSerialisers[event::class.qualifiedName!!]
-            ?: throw MissingSerialiserException(event::class.qualifiedName!!)
+        val serialiser =
+            eventSerialisers[event::class.qualifiedName!!]
+                ?: throw MissingSerialiserException(event::class.qualifiedName!!)
 
         val versionedPayload = serialiser(event)
 
@@ -81,11 +90,12 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
         // e.g. what if a com.dreweaster.ddd.jester.infrastructure.driven.eventstore.com.dreweaster.ddd.jester.infrastructure.driven.eventstore.postgres.db.migration in one mapper maps to a class name in another mapper?
         // Such scenarios should be made impossible (at least for v1...)
 
-        val mappingConfigurations = configurers.map {
-            val mappingConfiguration = MappingConfiguration<DomainEvent>()
-            it.configure(mappingConfiguration)
-            mappingConfiguration
-        }
+        val mappingConfigurations =
+            configurers.map {
+                val mappingConfiguration = MappingConfiguration<DomainEvent>()
+                it.configure(mappingConfiguration)
+                mappingConfiguration
+            }
 
         eventDeserialisers =
             mappingConfigurations.fold(eventDeserialisers) { acc, mappingConfiguration -> acc + mappingConfiguration.createDeserialisers() }
@@ -97,7 +107,6 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
     inner class MappingConfiguration<E : DomainEvent> :
         JsonEventMappingConfigurationFactory<E>,
         JsonEventMappingConfiguration<E> {
-
         private var currentVersion: Int = 0
 
         private var currentClassName: String? = null
@@ -122,7 +131,10 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
             return this
         }
 
-        override fun mappingFunctions(serialiseFunction: ((E) -> JsonObject), deserialiseFunction: ((JsonObject) -> E)) {
+        override fun mappingFunctions(
+            serialiseFunction: ((E) -> JsonObject),
+            deserialiseFunction: ((JsonObject) -> E),
+        ) {
             this.serialiseFunction = serialiseFunction
             this.deserialiseFunction = deserialiseFunction
         }
@@ -134,10 +146,11 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun createSerialiser(): Pair<String, (DomainEvent) -> Pair<String, Int>> = Pair(currentClassName!!) { domainEvent ->
-            val serialisedJsonEvent = serialiseFunction!!(domainEvent as E)
-            Pair(gson.toJson(serialisedJsonEvent), currentVersion)
-        }
+        fun createSerialiser(): Pair<String, (DomainEvent) -> Pair<String, Int>> =
+            Pair(currentClassName!!) { domainEvent ->
+                val serialisedJsonEvent = serialiseFunction!!(domainEvent as E)
+                Pair(gson.toJson(serialisedJsonEvent), currentVersion)
+            }
 
         fun createDeserialisers(): Map<Pair<String, Int>, (String) -> DomainEvent> {
             var deserialisers: MutableMap<Pair<String, Int>, (String) -> DomainEvent> = mutableMapOf()
@@ -152,18 +165,19 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
                     val root = stringToJsonNode(serialisedEvent)
                     deserialiseFunction!!(root)
                 }
-                )
+            )
             return deserialisers
         }
 
         private fun putDeserialisers(
             migrations: List<Migration>,
             deserialisers: Map<Pair<String, Int>, (String) -> DomainEvent>,
-        ): Map<Pair<String, Int>, (String) -> DomainEvent> = if (migrations.isEmpty()) {
-            deserialisers
-        } else {
-            putDeserialisers(migrations.drop(1), putDeserialiser(migrations, deserialisers))
-        }
+        ): Map<Pair<String, Int>, (String) -> DomainEvent> =
+            if (migrations.isEmpty()) {
+                deserialisers
+            } else {
+                putDeserialisers(migrations.drop(1), putDeserialiser(migrations, deserialisers))
+            }
 
         private fun putDeserialiser(
             migrations: List<Migration>,
@@ -210,7 +224,6 @@ class JsonEventPayloadMapper(private val gson: Gson, eventMappers: List<JsonEven
         override val toVersion: Int,
         override val migrationFunction: (JsonObject) -> JsonObject,
     ) : Migration {
-
         override val fromClassName = className
         override val toClassName = className
     }

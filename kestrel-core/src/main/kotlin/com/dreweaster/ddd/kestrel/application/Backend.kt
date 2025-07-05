@@ -17,7 +17,10 @@ interface Backend {
         commandHandler: suspend (PersistedAggregate<E, A>) -> GeneratedEvents<E>,
     ): Try<List<PersistedEvent<E>>>
 
-    suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(aggregateType: A, aggregateId: AggregateId): List<PersistedEvent<E>>
+    suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
+        aggregateType: A,
+        aggregateId: AggregateId,
+    ): List<PersistedEvent<E>>
 
     suspend fun <E : DomainEvent, A : Aggregate<*, E, *>> loadEvents(
         aggregateType: A,
@@ -34,9 +37,17 @@ interface Backend {
         correlationId: CorrelationId? = null,
     ): List<PersistedEvent<E>>
 
-    suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterOffset: Long, batchSize: Int): EventStream
+    suspend fun <E : DomainEvent> loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterOffset: Long,
+        batchSize: Int,
+    ): EventStream
 
-    suspend fun <E : DomainEvent> loadEventStream(tags: Set<DomainEventTag>, afterInstant: Instant, batchSize: Int): EventStream
+    suspend fun <E : DomainEvent> loadEventStream(
+        tags: Set<DomainEventTag>,
+        afterInstant: Instant,
+        batchSize: Int,
+    ): EventStream
 
     suspend fun <E : DomainEvent, P : ProcessManager<*, E, *>> persistProcessManagerEvent(
         eventId: EventId,
@@ -71,9 +82,17 @@ object NothingToProcess : ProcessManagerProcessingResult()
 
 object AlreadyProcessed : ProcessManagerProcessingResult()
 
-data class Failed(val failureCode: String, val message: String? = null, val ex: Throwable?) : ProcessManagerProcessingResult()
+data class Failed(
+    val failureCode: String,
+    val message: String? = null,
+    val ex: Throwable?,
+) : ProcessManagerProcessingResult()
 
-data class GeneratedEvents<E : DomainEvent>(val events: List<E>, val causationId: CausationId, val correlationId: CorrelationId? = null)
+data class GeneratedEvents<E : DomainEvent>(
+    val events: List<E>,
+    val causationId: CausationId,
+    val correlationId: CorrelationId? = null,
+)
 
 object OptimisticConcurrencyException : RuntimeException()
 
@@ -127,7 +146,9 @@ data class StreamEvent(
     val payloadContentType: SerialisationContentType,
 )
 
-enum class SerialisationContentType(private val value: String) {
+enum class SerialisationContentType(
+    private val value: String,
+) {
     JSON("application/json"),
     ;
 
@@ -135,12 +156,20 @@ enum class SerialisationContentType(private val value: String) {
 }
 
 interface EventPayloadMapper {
-    fun <E : DomainEvent> deserialiseEvent(serialisedPayload: String, serialisedEventType: String, serialisedEventVersion: Int): E
+    fun <E : DomainEvent> deserialiseEvent(
+        serialisedPayload: String,
+        serialisedEventType: String,
+        serialisedEventVersion: Int,
+    ): E
 
     fun <E : DomainEvent> serialiseEvent(event: E): PayloadSerialisationResult
 }
 
-data class PayloadSerialisationResult(val payload: String, val contentType: SerialisationContentType, val version: Int)
+data class PayloadSerialisationResult(
+    val payload: String,
+    val contentType: SerialisationContentType,
+    val version: Int,
+)
 
 open class MappingException : RuntimeException {
     constructor(message: String) : super(message)

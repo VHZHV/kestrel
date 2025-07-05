@@ -9,7 +9,10 @@ abstract class SynchronousJdbcReadModel {
     class EventHandlers {
         var handlers: Map<KClass<out DomainEvent>, ((PersistedEvent<DomainEvent>) -> Unit)> = emptyMap()
 
-        fun <E : DomainEvent> withHandler(type: KClass<E>, handler: (PersistedEvent<DomainEvent>) -> Unit): EventHandlers {
+        fun <E : DomainEvent> withHandler(
+            type: KClass<E>,
+            handler: (PersistedEvent<DomainEvent>) -> Unit,
+        ): EventHandlers {
             handlers += type to handler
             return this
         }
@@ -31,7 +34,9 @@ abstract class SynchronousJdbcReadModel {
 }
 
 // TODO: Restrict events to only those applicable to the aggregate type
-class Projection<E : DomainEvent, A : Aggregate<*, E, *>>(val aggregateType: KClass<A>) {
+class Projection<E : DomainEvent, A : Aggregate<*, E, *>>(
+    val aggregateType: KClass<A>,
+) {
     val eventHandlers = SynchronousJdbcReadModel.EventHandlers()
 
     inline fun <reified Evt : E> event(noinline handler: (PersistedEvent<Evt>) -> Unit) {

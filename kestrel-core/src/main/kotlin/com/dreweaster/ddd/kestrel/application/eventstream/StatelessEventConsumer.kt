@@ -2,7 +2,9 @@ package com.dreweaster.ddd.kestrel.application.eventstream
 
 import com.dreweaster.ddd.kestrel.domain.DomainEvent
 
-abstract class StatelessEventConsumer(val boundedContexts: BoundedContextEventStreamSources) {
+abstract class StatelessEventConsumer(
+    val boundedContexts: BoundedContextEventStreamSources,
+) {
     data class SubscriberConfiguration(
         val name: String,
         val boundedContextName: BoundedContextName,
@@ -36,7 +38,9 @@ abstract class StatelessEventConsumer(val boundedContexts: BoundedContextEventSt
         }
     }
 
-    class Subscriber(val eventHandlersBuilder: BoundedContextEventStreamSource.EventHandlersBuilder) {
+    class Subscriber(
+        val eventHandlersBuilder: BoundedContextEventStreamSource.EventHandlersBuilder,
+    ) {
         inline fun <reified E : DomainEvent> event(noinline handler: suspend (E, EventMetadata) -> Unit) {
             eventHandlersBuilder.withHandler(E::class, handler)
         }

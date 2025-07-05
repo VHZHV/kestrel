@@ -17,10 +17,14 @@ interface CommandDeduplicationStrategyFactory {
     fun newBuilder(): CommandDeduplicationStrategyBuilder
 }
 
-class TimeRestrictedCommandDeduplicationStrategy(private val causationIds: Set<CausationId>) : CommandDeduplicationStrategy {
+class TimeRestrictedCommandDeduplicationStrategy(
+    private val causationIds: Set<CausationId>,
+) : CommandDeduplicationStrategy {
     override fun isDuplicate(commandId: CommandId): Boolean = causationIds.contains(CausationId(commandId.value))
 
-    class Builder(private val barrierDate: Instant) : CommandDeduplicationStrategyBuilder {
+    class Builder(
+        private val barrierDate: Instant,
+    ) : CommandDeduplicationStrategyBuilder {
         private var causationIds: Set<CausationId> = emptySet()
 
         override fun addEvent(domainEvent: PersistedEvent<*>): CommandDeduplicationStrategyBuilder {

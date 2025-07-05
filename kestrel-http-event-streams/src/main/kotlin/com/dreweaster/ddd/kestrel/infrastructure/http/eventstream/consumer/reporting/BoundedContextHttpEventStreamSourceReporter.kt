@@ -3,12 +3,10 @@ package com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.repo
 import java.time.Instant
 
 interface BoundedContextHttpEventStreamSourceReporter {
-
     fun createProbe(subscriberName: String): BoundedContextHttpEventStreamSourceProbe
 }
 
 interface BoundedContextHttpEventStreamSourceProbe {
-
     fun startedConsuming()
 
     fun finishedConsuming()
@@ -33,16 +31,20 @@ interface BoundedContextHttpEventStreamSourceProbe {
 
     fun finishedSavingOffset(ex: Throwable)
 
-    fun startedHandlingEvent(eventType: String, timestamp: Instant)
+    fun startedHandlingEvent(
+        eventType: String,
+        timestamp: Instant,
+    )
 
     fun finishedHandlingEvent()
 
     fun finishedHandlingEvent(ex: Throwable)
 }
 
-class ReportingContext(subscriptionName: String, reporters: List<BoundedContextHttpEventStreamSourceReporter>) :
-    BoundedContextHttpEventStreamSourceProbe {
-
+class ReportingContext(
+    subscriptionName: String,
+    reporters: List<BoundedContextHttpEventStreamSourceReporter>,
+) : BoundedContextHttpEventStreamSourceProbe {
     private val probes: List<BoundedContextHttpEventStreamSourceProbe> =
         reporters.map { it.createProbe(subscriptionName) }
 
@@ -94,7 +96,10 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
         probes.forEach { it.finishedSavingOffset(ex) }
     }
 
-    override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
+    override fun startedHandlingEvent(
+        eventType: String,
+        timestamp: Instant,
+    ) {
         probes.forEach { it.startedHandlingEvent(eventType, timestamp) }
     }
 
@@ -108,9 +113,7 @@ class ReportingContext(subscriptionName: String, reporters: List<BoundedContextH
 }
 
 object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
-
     class ConsoleProbe : BoundedContextHttpEventStreamSourceProbe {
-
         override fun startedConsuming() {
         }
 
@@ -147,7 +150,10 @@ object ConsoleReporter : BoundedContextHttpEventStreamSourceReporter {
         override fun finishedSavingOffset(ex: Throwable) {
         }
 
-        override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
+        override fun startedHandlingEvent(
+            eventType: String,
+            timestamp: Instant,
+        ) {
         }
 
         override fun finishedHandlingEvent() {

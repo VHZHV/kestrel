@@ -13,7 +13,8 @@ fun Application.module() {
 
 fun main() {
     // Migrate DB
-    Flyway.configure()
+    Flyway
+        .configure()
         .dataSource("jdbc:postgresql://example-db/postgres", "postgres", "password")
         .load()
         .migrate()

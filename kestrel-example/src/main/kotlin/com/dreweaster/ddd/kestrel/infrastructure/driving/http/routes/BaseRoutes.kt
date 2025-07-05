@@ -14,7 +14,6 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.InputStreamReader
 
 abstract class BaseRoutes {
-
     companion object {
         val gson = Gson()
     }

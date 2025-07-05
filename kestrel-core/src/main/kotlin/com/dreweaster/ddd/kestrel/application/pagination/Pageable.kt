@@ -2,15 +2,25 @@ package com.dreweaster.ddd.kestrel.application.pagination
 
 import io.vavr.kotlin.Try
 
-data class Pageable(val pageNumber: Int, val pageSize: Int) {
+data class Pageable(
+    val pageNumber: Int,
+    val pageSize: Int,
+) {
     val offset = (pageNumber - 1) * pageSize
 }
 
 interface Page<T> {
     companion object {
-        fun <T> single(values: List<T>, pageable: Pageable): Page<T> = SinglePage(values, pageable)
+        fun <T> single(
+            values: List<T>,
+            pageable: Pageable,
+        ): Page<T> = SinglePage(values, pageable)
 
-        fun <T> slice(values: List<T>, totalElements: Int, pageable: Pageable): Page<T> = SlicedPage(values, totalElements, pageable)
+        fun <T> slice(
+            values: List<T>,
+            totalElements: Int,
+            pageable: Pageable,
+        ): Page<T> = SlicedPage(values, totalElements, pageable)
     }
 
     val isFirst: Boolean
@@ -34,7 +44,10 @@ interface Page<T> {
     val hasNext: Boolean
 }
 
-data class SinglePage<T>(override val values: List<T>, private val pageable: Pageable) : Page<T> {
+data class SinglePage<T>(
+    override val values: List<T>,
+    private val pageable: Pageable,
+) : Page<T> {
     override val isFirst = true
     override val isLast = true
     override val size = values.count()
@@ -46,7 +59,11 @@ data class SinglePage<T>(override val values: List<T>, private val pageable: Pag
     override val hasNext = false
 }
 
-data class SlicedPage<T>(override val values: List<T>, override val totalElements: Int, private val pageable: Pageable) : Page<T> {
+data class SlicedPage<T>(
+    override val values: List<T>,
+    override val totalElements: Int,
+    private val pageable: Pageable,
+) : Page<T> {
     override val size = values.count()
     override val totalPages: Int =
         Try { (totalElements + pageable.pageSize - 1) / pageable.pageSize }.toOption().getOrElse(0)

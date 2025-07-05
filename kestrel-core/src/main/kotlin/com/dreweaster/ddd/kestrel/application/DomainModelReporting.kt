@@ -19,19 +19,32 @@ interface CommandHandlingProbe<C : DomainCommand, E : DomainEvent, S : Aggregate
 
     fun startedRecoveringAggregate()
 
-    fun finishedRecoveringAggregate(previousEvents: List<E>, version: Long, state: S? = null)
+    fun finishedRecoveringAggregate(
+        previousEvents: List<E>,
+        version: Long,
+        state: S? = null,
+    )
 
     fun finishedRecoveringAggregate(unexpectedException: Throwable)
 
     fun startedApplyingCommand()
 
-    fun commandApplicationAccepted(events: List<E>, deduplicated: Boolean = false)
+    fun commandApplicationAccepted(
+        events: List<E>,
+        deduplicated: Boolean = false,
+    )
 
-    fun commandApplicationRejected(rejection: Throwable, deduplicated: Boolean = false)
+    fun commandApplicationRejected(
+        rejection: Throwable,
+        deduplicated: Boolean = false,
+    )
 
     fun commandApplicationFailed(unexpectedException: Throwable)
 
-    fun startedPersistingEvents(events: List<E>, expectedSequenceNumber: Long)
+    fun startedPersistingEvents(
+        events: List<E>,
+        expectedSequenceNumber: Long,
+    )
 
     fun finishedPersistingEvents(persistedEvents: List<PersistedEvent<E>>)
 
@@ -56,7 +69,11 @@ class ReportingContext<C : DomainCommand, E : DomainEvent, S : AggregateState>(
         probes.forEach { it.startedRecoveringAggregate() }
     }
 
-    override fun finishedRecoveringAggregate(previousEvents: List<E>, version: Long, state: S?) {
+    override fun finishedRecoveringAggregate(
+        previousEvents: List<E>,
+        version: Long,
+        state: S?,
+    ) {
         probes.forEach { it.finishedRecoveringAggregate(previousEvents, version, state) }
     }
 
@@ -68,11 +85,17 @@ class ReportingContext<C : DomainCommand, E : DomainEvent, S : AggregateState>(
         probes.forEach { it.startedApplyingCommand() }
     }
 
-    override fun commandApplicationAccepted(events: List<E>, deduplicated: Boolean) {
+    override fun commandApplicationAccepted(
+        events: List<E>,
+        deduplicated: Boolean,
+    ) {
         probes.forEach { it.commandApplicationAccepted(events, deduplicated) }
     }
 
-    override fun commandApplicationRejected(rejection: Throwable, deduplicated: Boolean) {
+    override fun commandApplicationRejected(
+        rejection: Throwable,
+        deduplicated: Boolean,
+    ) {
         probes.forEach { it.commandApplicationRejected(rejection, deduplicated) }
     }
 
@@ -80,7 +103,10 @@ class ReportingContext<C : DomainCommand, E : DomainEvent, S : AggregateState>(
         probes.forEach { it.commandApplicationFailed(unexpectedException) }
     }
 
-    override fun startedPersistingEvents(events: List<E>, expectedSequenceNumber: Long) {
+    override fun startedPersistingEvents(
+        events: List<E>,
+        expectedSequenceNumber: Long,
+    ) {
         probes.forEach { it.startedPersistingEvents(events, expectedSequenceNumber) }
     }
 
@@ -107,7 +133,11 @@ object ConsoleReporter : DomainModelReporter {
             println("Started recovering aggregate")
         }
 
-        override fun finishedRecoveringAggregate(previousEvents: List<E>, version: Long, state: S?) {
+        override fun finishedRecoveringAggregate(
+            previousEvents: List<E>,
+            version: Long,
+            state: S?,
+        ) {
             println("Successfully recovered aggregate: version = $version, events = $previousEvents, currentState = $state")
         }
 
@@ -119,11 +149,17 @@ object ConsoleReporter : DomainModelReporter {
             println("Started applying command")
         }
 
-        override fun commandApplicationAccepted(events: List<E>, deduplicated: Boolean) {
+        override fun commandApplicationAccepted(
+            events: List<E>,
+            deduplicated: Boolean,
+        ) {
             println("Successfully applied command: generatedEvents = $events, deduplicated = $deduplicated")
         }
 
-        override fun commandApplicationRejected(rejection: Throwable, deduplicated: Boolean) {
+        override fun commandApplicationRejected(
+            rejection: Throwable,
+            deduplicated: Boolean,
+        ) {
             println("Command was rejected: rejection = $rejection, deduplicated = $deduplicated")
         }
 
@@ -131,7 +167,10 @@ object ConsoleReporter : DomainModelReporter {
             println("Command application failed: error = $unexpectedException")
         }
 
-        override fun startedPersistingEvents(events: List<E>, expectedSequenceNumber: Long) {
+        override fun startedPersistingEvents(
+            events: List<E>,
+            expectedSequenceNumber: Long,
+        ) {
             println("Started persisting generated events: expectedVersion = $expectedSequenceNumber, events = $events")
         }
 

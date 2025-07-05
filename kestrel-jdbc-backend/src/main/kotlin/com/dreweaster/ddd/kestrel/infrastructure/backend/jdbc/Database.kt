@@ -21,20 +21,24 @@ import javax.sql.DataSource
 import java.time.Instant as JavaInstant
 import org.joda.time.DateTime as JodaDateTime
 
-class Database(dataSource: DataSource, private val context: CoroutineDispatcher) {
+class Database(
+    dataSource: DataSource,
+    private val context: CoroutineDispatcher,
+) {
     private val db = Database.connect(dataSource)
 
-    suspend fun <T> transaction(block: (DatabaseTransaction) -> T): T = withContext(context) {
-        transaction(db) {
-            block(
-                object : DatabaseTransaction {
-                    override fun rollback(): Unit = throw DatabaseTransaction.TransactionRollbackException
+    suspend fun <T> transaction(block: (DatabaseTransaction) -> T): T =
+        withContext(context) {
+            transaction(db) {
+                block(
+                    object : DatabaseTransaction {
+                        override fun rollback(): Unit = throw DatabaseTransaction.TransactionRollbackException
 
-                    override fun rollback(throwable: Throwable): Unit = throw throwable
-                },
-            )
+                        override fun rollback(throwable: Throwable): Unit = throw throwable
+                    },
+                )
+            }
         }
-    }
 }
 
 class UnexpectedNumberOfRowsAffectedInUpdate : RuntimeException()
@@ -53,7 +57,9 @@ private fun JodaDateTime.toInstantJava() = JavaInstant.ofEpochMilli(this.millis)
 
 private fun JavaInstant.toJodaDateTime() = JodaDateTime(this.toEpochMilli())
 
-class InstantColumnType(time: Boolean) : ColumnType<Instant>() {
+class InstantColumnType(
+    time: Boolean,
+) : ColumnType<Instant>() {
     private val delegate = DateColumnType(time)
 
     override fun sqlType(): String = delegate.sqlType()
@@ -75,25 +81,41 @@ class InstantColumnType(time: Boolean) : ColumnType<Instant>() {
     override fun notNullValueToDB(value: Instant): Any = delegate.notNullValueToDB(value.toJodaDateTime())
 }
 
-sealed class ConflictTarget(val name: String, val columns: List<Column<*>>) {
+sealed class ConflictTarget(
+    val name: String,
+    val columns: List<Column<*>>,
+) {
     abstract fun toSql(): String
 }
 
-class PrimaryKeyConstraintTarget(table: Table, columns: List<Column<*>>) : ConflictTarget("${table.nameInDatabaseCase()}_pkey", columns) {
+class PrimaryKeyConstraintTarget(
+    table: Table,
+    columns: List<Column<*>>,
+) : ConflictTarget("${table.nameInDatabaseCase()}_pkey", columns) {
     override fun toSql() = "ON CONFLICT ON CONSTRAINT $name"
 }
 
-class ColumnTarget(column: Column<*>) : ConflictTarget(column.name, listOf(column)) {
+class ColumnTarget(
+    column: Column<*>,
+) : ConflictTarget(column.name, listOf(column)) {
     override fun toSql() = "ON CONFLICT($name)"
 }
 
-class IndexTarget(index: Index) : ConflictTarget(index.indexName, index.columns) {
+class IndexTarget(
+    index: Index,
+) : ConflictTarget(index.indexName, index.columns) {
     override fun toSql() = "ON CONFLICT($name)"
 }
 
-class UpsertStatement<Key : Any>(table: Table, private val conflictTarget: ConflictTarget, private val where: Op<Boolean>? = null) :
-    InsertStatement<Key>(table, false) {
-    override fun prepareSQL(transaction: Transaction, prepared: Boolean) = buildString {
+class UpsertStatement<Key : Any>(
+    table: Table,
+    private val conflictTarget: ConflictTarget,
+    private val where: Op<Boolean>? = null,
+) : InsertStatement<Key>(table, false) {
+    override fun prepareSQL(
+        transaction: Transaction,
+        prepared: Boolean,
+    ) = buildString {
         append(super.prepareSQL(transaction, prepared))
         append(" ")
         append(conflictTarget.toSql())
@@ -115,9 +137,14 @@ class UpsertStatement<Key : Any>(table: Table, private val conflictTarget: Confl
     }
 }
 
-class InsertOnConflictDoNothingStatement<Key : Any>(table: Table, private val conflictTarget: ConflictTarget) :
-    InsertStatement<Key>(table, false) {
-    override fun prepareSQL(transaction: Transaction, prepared: Boolean) = buildString {
+class InsertOnConflictDoNothingStatement<Key : Any>(
+    table: Table,
+    private val conflictTarget: ConflictTarget,
+) : InsertStatement<Key>(table, false) {
+    override fun prepareSQL(
+        transaction: Transaction,
+        prepared: Boolean,
+    ) = buildString {
         append(super.prepareSQL(transaction, prepared))
         append(" ")
         append(conflictTarget.toSql())
@@ -144,14 +171,23 @@ fun <T : Table> T.upsert(
     return query.execute(TransactionManager.current())!!
 }
 
-fun Table.indexR(customIndexName: String? = null, isUnique: Boolean = false, vararg columns: Column<*>): Index {
+fun Table.indexR(
+    customIndexName: String? = null,
+    isUnique: Boolean = false,
+    vararg columns: Column<*>,
+): Index {
     index(customIndexName = customIndexName, isUnique = isUnique, columns = columns)
     return indices[indices.size - 1]
 }
 
-fun Table.uniqueIndexR(customIndexName: String? = null, vararg columns: Column<*>): Index = indexR(customIndexName, true, *columns)
+fun Table.uniqueIndexR(
+    customIndexName: String? = null,
+    vararg columns: Column<*>,
+): Index = indexR(customIndexName, true, *columns)
 
 fun Table.primaryKeyConstraintConflictTarget(vararg columns: Column<*>): ConflictTarget = PrimaryKeyConstraintTarget(this, columns.toList())
 
-fun Table.uniqueIndexConflictTarget(customIndexName: String? = null, vararg columns: Column<*>): IndexTarget =
-    IndexTarget(uniqueIndexR(customIndexName, *columns))
+fun Table.uniqueIndexConflictTarget(
+    customIndexName: String? = null,
+    vararg columns: Column<*>,
+): IndexTarget = IndexTarget(uniqueIndexR(customIndexName, *columns))

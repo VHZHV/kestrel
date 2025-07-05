@@ -16,51 +16,58 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
     openTelemetry: OpenTelemetry,
     private val context: BoundedContextName,
 ) : BoundedContextHttpEventStreamSourceReporter {
+    private val meter =
+        openTelemetry
+            .meterBuilder(
+                BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found"),
+            ).build()
 
-    private val meter = openTelemetry.meterBuilder(
-        BoundedContextHttpEventStreamSourceReporter::class.qualifiedName ?: throw IllegalStateException("Class name not found"),
-    )
-        .build()
+    val consumptionAttemptMeter: LongCounter =
+        meter
+            .counterBuilder("consumption_attempted")
+            .setDescription("An attempt to read from the event stream")
+            .build()
 
-    val consumptionAttemptMeter: LongCounter = meter
-        .counterBuilder("consumption_attempted")
-        .setDescription("An attempt to read from the event stream")
-        .build()
+    val eventHandledMeter: LongCounter =
+        meter
+            .counterBuilder("event_handled")
+            .setDescription("An attempt to handle an event")
+            .build()
 
-    val eventHandledMeter: LongCounter = meter
-        .counterBuilder("event_handled")
-        .setDescription("An attempt to handle an event")
-        .build()
+    val maxOffsetMeter: LongGauge =
+        meter
+            .gaugeBuilder("max_offset")
+            .setDescription("The maximum offset available for a consumer to consume to")
+            .setUnit("events")
+            .ofLongs()
+            .build()
 
-    val maxOffsetMeter: LongGauge = meter
-        .gaugeBuilder("max_offset")
-        .setDescription("The maximum offset available for a consumer to consume to")
-        .setUnit("events")
-        .ofLongs()
-        .build()
+    val currentOffsetMeter: LongCounter =
+        meter
+            .counterBuilder("current_offset_latest")
+            .setDescription("Current offset a consumer has reached")
+            .setUnit("events")
+            .build()
 
-    val currentOffsetMeter: LongCounter = meter
-        .counterBuilder("current_offset_latest")
-        .setDescription("Current offset a consumer has reached")
-        .setUnit("events")
-        .build()
+    val offsetRetrievalMeter: LongCounter =
+        meter
+            .counterBuilder("offset_retrievals")
+            .setDescription("Attempts to retrieve current stream's offset")
+            .build()
 
-    val offsetRetrievalMeter: LongCounter = meter
-        .counterBuilder("offset_retrievals")
-        .setDescription("Attempts to retrieve current stream's offset")
-        .build()
+    val offsetStorageMeter: LongCounter =
+        meter
+            .counterBuilder("offset_stores")
+            .setDescription("Attempts to store current stream's offset")
+            .build()
 
-    val offsetStorageMeter: LongCounter = meter
-        .counterBuilder("offset_stores")
-        .setDescription("Attempts to store current stream's offset")
-        .build()
-
-    val eventLatency: LongGauge = meter
-        .gaugeBuilder("event_latency")
-        .setDescription("Event processor latency")
-        .setUnit("latency")
-        .ofLongs()
-        .build()
+    val eventLatency: LongGauge =
+        meter
+            .gaugeBuilder("event_latency")
+            .setDescription("Event processor latency")
+            .setUnit("latency")
+            .ofLongs()
+            .build()
 
     private val logger: Logger = LoggerFactory.getLogger(BoundedContextHttpEventStreamSourceReporter::class.java)
 
@@ -71,20 +78,27 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         logger.info("Initialising Metrics")
     }
 
-    inner class OpenTelemetryBoundedContextHttpEventStreamSourceProbe(private val subscriberName: String) :
-        BoundedContextHttpEventStreamSourceProbe {
+    inner class OpenTelemetryBoundedContextHttpEventStreamSourceProbe(
+        private val subscriberName: String,
+    ) : BoundedContextHttpEventStreamSourceProbe {
+        private fun baseAttributes() =
+            Attributes
+                .builder()
+                .put("subscription", subscriberName)
+                .put("context", context.name)
 
-        private fun baseAttributes() = Attributes.builder()
-            .put("subscription", subscriberName)
-            .put("context", context.name)
+        private val successAttributes =
+            baseAttributes()
+                .put("result", "success")
 
-        private val successAttributes = baseAttributes()
-            .put("result", "success")
+        private val failureAttributes =
+            baseAttributes()
+                .put("result", "failure")
 
-        private val failureAttributes = baseAttributes()
-            .put("result", "failure")
-
-        override fun startedHandlingEvent(eventType: String, timestamp: Instant) {
+        override fun startedHandlingEvent(
+            eventType: String,
+            timestamp: Instant,
+        ) {
             eventLatency.set(Duration.between(timestamp, Instant.now()).toSeconds(), baseAttributes().build())
         }
 
@@ -97,6 +111,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun startedConsuming() {}
+
         override fun finishedConsuming() {
             consumptionAttemptMeter.add(1, successAttributes.build())
         }
@@ -106,6 +121,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun startedFetchingEventStream() {}
+
         override fun finishedFetchingEventStream(maxOffset: Long) {
             maxOffsetMeter.set(maxOffset, baseAttributes().build())
         }
@@ -114,6 +130,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun startedFetchingOffset() {}
+
         override fun finishedFetchingOffset() {
             offsetRetrievalMeter.add(1, successAttributes.build())
         }
@@ -123,6 +140,7 @@ class OpenTelemetryMetricsBoundedContextHttpEventStreamSourceReporter(
         }
 
         override fun startedSavingOffset() {}
+
         override fun finishedSavingOffset(offset: Long) {
             // Sometimes reported as -1 (if value is unknown), but this isn't helpful to record
             if (offset >= 0) {

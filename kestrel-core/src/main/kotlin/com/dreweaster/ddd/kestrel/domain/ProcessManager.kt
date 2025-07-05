@@ -42,7 +42,10 @@ interface ProcessManager<C : ProcessManagerContext, E : DomainEvent, S : Process
     }
 }
 
-class ProcessManagerBlueprint<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(val name: String, val startWith: S) {
+class ProcessManagerBlueprint<C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(
+    val name: String,
+    val startWith: S,
+) {
     var capturedBehaviours: Map<KClass<S>, ProcessManagerBehaviour<C, E, S, *>> = emptyMap()
 
     @Suppress("UNCHECKED_CAST")
@@ -66,7 +69,10 @@ interface CommandDispatcher {
 
 interface EventScheduler {
     // Implementation of this will deliver event straight away
-    suspend fun <Evt : E, E : DomainEvent> schedule(event: Evt, at: Instant): Try<Unit>
+    suspend fun <Evt : E, E : DomainEvent> schedule(
+        event: Evt,
+        at: Instant,
+    ): Try<Unit>
 }
 
 data class SendableCommand<Cmd : ARCommand, ARCommand : DomainCommand, AREvent : DomainEvent, ARState : AggregateState>(
@@ -79,7 +85,10 @@ data class SendableCommand<Cmd : ARCommand, ARCommand : DomainCommand, AREvent :
     }
 }
 
-data class SchedulableEvent<Evt : E, E : DomainEvent>(val event: Evt, val at: Instant) {
+data class SchedulableEvent<Evt : E, E : DomainEvent>(
+    val event: Evt,
+    val at: Instant,
+) {
     suspend fun scheduleUsing(scheduler: EventScheduler) {
         scheduler.schedule(event, at)
     }
@@ -93,8 +102,10 @@ class ProcessManagerBehaviour<C : ProcessManagerContext, E : DomainEvent, S : Pr
         capturedHandlers += Evt::class as KClass<E> to handler as (C, State, E) -> ProcessManagerStepBuilder<*, C, E, S>
     }
 
-    fun <Result, ResultState : S> goto(state: ResultState, callable: suspend () -> Result): ProcessManagerStepBuilder<Result, C, E, S> =
-        ProcessManagerStepBuilder(state, callable)
+    fun <Result, ResultState : S> goto(
+        state: ResultState,
+        callable: suspend () -> Result,
+    ): ProcessManagerStepBuilder<Result, C, E, S> = ProcessManagerStepBuilder(state, callable)
 
     fun <ResultState : S> goto(state: ResultState): ProcessManagerStepBuilder<Unit, C, E, S> = ProcessManagerStepBuilder(state, null)
 
@@ -119,7 +130,9 @@ data class SuccessfullyExecutedStep(
     val scheduledEvents: List<SchedulableEvent<*, *>>,
 ) : ExecutedStep()
 
-data class UnsuccessfullyExecutedStep(val executionException: Throwable) : ExecutedStep()
+data class UnsuccessfullyExecutedStep(
+    val executionException: Throwable,
+) : ExecutedStep()
 
 class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEvent, S : ProcessManagerState>(
     val state: S,
@@ -205,15 +218,19 @@ class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEve
         }
     }
 
-    private suspend fun <Result> doExecute(callable: (suspend () -> Result)): Try<Result> = try {
-        val result = callable.invoke()
-        Try.success(result)
-    } catch (ex: Exception) {
-        Try.failure(ex)
-    }
+    private suspend fun <Result> doExecute(callable: (suspend () -> Result)): Try<Result> =
+        try {
+            val result = callable.invoke()
+            Try.success(result)
+        } catch (ex: Exception) {
+            Try.failure(ex)
+        }
 }
 
-class CommandReceiver<C : DomainCommand, E : DomainEvent, S : AggregateState>(val command: C, val aggregateType: Aggregate<C, E, S>) {
+class CommandReceiver<C : DomainCommand, E : DomainEvent, S : AggregateState>(
+    val command: C,
+    val aggregateType: Aggregate<C, E, S>,
+) {
     var capturedId: AggregateId? = null
 
     infix fun identifiedBy(id: AggregateId): CommandReceiver<C, E, S> {

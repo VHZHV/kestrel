@@ -128,77 +128,79 @@ class EventSourcedDomainModel(
             commandEnvelope: CommandEnvelope<C>,
             aggregate: RecoveredAggregate<E, S>,
             commandApplicationResult: Try<List<E>>,
-        ): CommandHandlingResult<E> = when (commandApplicationResult) {
-            is Try.Success -> {
-                val generatedEvents = commandApplicationResult.get()
+        ): CommandHandlingResult<E> =
+            when (commandApplicationResult) {
+                is Try.Success -> {
+                    val generatedEvents = commandApplicationResult.get()
 
-                reportingContext.commandApplicationAccepted(generatedEvents)
+                    reportingContext.commandApplicationAccepted(generatedEvents)
 
-                if (generatedEvents.isNotEmpty()) {
-                    reportingContext.startedPersistingEvents(generatedEvents, aggregate.version)
+                    if (generatedEvents.isNotEmpty()) {
+                        reportingContext.startedPersistingEvents(generatedEvents, aggregate.version)
 
-                    try {
-                        val persistedEvents =
-                            backend.saveEvents(
-                                aggregateType,
-                                aggregateId,
-                                CausationId(commandEnvelope.commandId.value),
-                                generatedEvents,
-                                aggregate.version,
-                                commandEnvelope.correlationId,
-                            )
-                        reportingContext.finishedPersistingEvents(persistedEvents)
-                    } catch (ex: Throwable) {
-                        reportingContext.finishedPersistingEvents(ex)
-                        throw ex
+                        try {
+                            val persistedEvents =
+                                backend.saveEvents(
+                                    aggregateType,
+                                    aggregateId,
+                                    CausationId(commandEnvelope.commandId.value),
+                                    generatedEvents,
+                                    aggregate.version,
+                                    commandEnvelope.correlationId,
+                                )
+                            reportingContext.finishedPersistingEvents(persistedEvents)
+                        } catch (ex: Throwable) {
+                            reportingContext.finishedPersistingEvents(ex)
+                            throw ex
+                        }
                     }
+
+                    SuccessResult(generatedEvents)
                 }
 
-                SuccessResult(generatedEvents)
+                else -> {
+                    reportingContext.commandApplicationRejected(commandApplicationResult.cause)
+                    RejectionResult(commandApplicationResult.cause)
+                }
             }
-
-            else -> {
-                reportingContext.commandApplicationRejected(commandApplicationResult.cause)
-                RejectionResult(commandApplicationResult.cause)
-            }
-        }
 
         // TODO: Check canHandle on event handlers
-        private suspend fun recoverAggregate(): RecoveredAggregate<E, S> = try {
-            reportingContext.startedRecoveringAggregate()
+        private suspend fun recoverAggregate(): RecoveredAggregate<E, S> =
+            try {
+                reportingContext.startedRecoveringAggregate()
 
-            val previousEvents = backend.loadEvents(aggregateType, aggregateId)
+                val previousEvents = backend.loadEvents(aggregateType, aggregateId)
 
-            val aggregate =
-                previousEvents.fold(
-                    RecoveredAggregate<E, S>(
-                        version = -1,
-                        previousEvents = emptyList(),
-                        state = null,
-                        builder = commandDeduplicationStrategyFactory.newBuilder(),
-                    ),
-                ) { acc, e ->
-                    acc.copy(
-                        version = e.sequenceNumber,
-                        previousEvents = acc.previousEvents + e,
-                        state =
-                        if (acc.state != null) {
-                            aggregateType.blueprint.eventHandler(
-                                acc.state,
-                                e.rawEvent,
-                            )
-                        } else {
-                            aggregateType.blueprint.edenEventHandler(e.rawEvent)
-                        },
-                        builder = acc.builder.addEvent(e),
-                    )
-                }
-            reportingContext.finishedRecoveringAggregate(aggregate.rawEvents, aggregate.version, aggregate.state)
-            aggregate
-        } catch (ex: Throwable) {
-            reportingContext.finishedRecoveringAggregate(ex)
-            throw ex
-        }
+                val aggregate =
+                    previousEvents.fold(
+                        RecoveredAggregate<E, S>(
+                            version = -1,
+                            previousEvents = emptyList(),
+                            state = null,
+                            builder = commandDeduplicationStrategyFactory.newBuilder(),
+                        ),
+                    ) { acc, e ->
+                        acc.copy(
+                            version = e.sequenceNumber,
+                            previousEvents = acc.previousEvents + e,
+                            state =
+                                if (acc.state != null) {
+                                    aggregateType.blueprint.eventHandler(
+                                        acc.state,
+                                        e.rawEvent,
+                                    )
+                                } else {
+                                    aggregateType.blueprint.edenEventHandler(e.rawEvent)
+                                },
+                            builder = acc.builder.addEvent(e),
+                        )
+                    }
+                reportingContext.finishedRecoveringAggregate(aggregate.rawEvents, aggregate.version, aggregate.state)
+                aggregate
+            } catch (ex: Throwable) {
+                reportingContext.finishedRecoveringAggregate(ex)
+                throw ex
+            }
     }
 }
 

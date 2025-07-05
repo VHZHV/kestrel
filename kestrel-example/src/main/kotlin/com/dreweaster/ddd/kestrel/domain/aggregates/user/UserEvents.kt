@@ -7,9 +7,22 @@ sealed class UserEvent : DomainEvent {
     override val tag = DomainEventTag("user-event")
 }
 
-data class UserRegistered(val username: String, val password: String) : UserEvent()
-data class PasswordChanged(val oldPassword: String, val password: String) : UserEvent()
-data class UsernameChanged(val username: String) : UserEvent()
+data class UserRegistered(
+    val username: String,
+    val password: String,
+) : UserEvent()
+
+data class PasswordChanged(
+    val oldPassword: String,
+    val password: String,
+) : UserEvent()
+
+data class UsernameChanged(
+    val username: String,
+) : UserEvent()
+
 object UserLocked : UserEvent()
+
 object UserUnlocked : UserEvent()
+
 object FailedLoginAttemptsIncremented : UserEvent()

@@ -8,7 +8,6 @@ import com.github.salomonbrys.kotson.string
 import com.google.gson.JsonObject
 
 object PasswordChangedMapper : JsonEventMappingConfigurer<PasswordChanged> {
-
     private val serialiser: (PasswordChanged) -> JsonObject = { event ->
         jsonObject(
             "old_password" to event.oldPassword,
@@ -24,7 +23,8 @@ object PasswordChangedMapper : JsonEventMappingConfigurer<PasswordChanged> {
     }
 
     override fun configure(configurationFactory: JsonEventMappingConfigurationFactory<PasswordChanged>) {
-        configurationFactory.create(PasswordChanged::class.qualifiedName!!)
+        configurationFactory
+            .create(PasswordChanged::class.qualifiedName!!)
             .mappingFunctions(serialiser, deserialiser)
     }
 }

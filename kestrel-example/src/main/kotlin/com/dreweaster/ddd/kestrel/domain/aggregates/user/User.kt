@@ -3,7 +3,6 @@ package com.dreweaster.ddd.kestrel.domain.aggregates.user
 import com.dreweaster.ddd.kestrel.domain.Aggregate
 
 object User : Aggregate<UserCommand, UserEvent, UserState> {
-
     override val blueprint =
 
         aggregate("user") {
@@ -45,7 +44,7 @@ object User : Aggregate<UserCommand, UserEvent, UserState> {
                     event<FailedLoginAttemptsIncremented> { currentState, _ ->
                         currentState.copy(
                             failedLoginAttempts =
-                            currentState.failedLoginAttempts + 1,
+                                currentState.failedLoginAttempts + 1,
                         )
                     }
                     event<UserLocked> { (username, password, _), _ -> LockedUser(username, password) }
