@@ -41,8 +41,8 @@ import com.github.tomakehurst.wiremock.http.Response
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.kotest.assertions.nondeterministic.eventually
-import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.engine.runBlocking
 import io.kotest.matchers.string.shouldContain
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.OpenTelemetrySdk
@@ -252,7 +252,7 @@ val configuration =
                     ).mapNotNull {
                         try {
                             it to req.queryParameter(it).values()
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     }.toMap()
