@@ -29,20 +29,19 @@ import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.consumer.offse
 import com.dreweaster.ddd.kestrel.infrastructure.http.eventstream.producer.BoundedContextHttpJsonEventStreamProducer
 import com.dreweaster.ddd.kestrel.infrastructure.job.ScheduledExecutorServiceJobManager
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
-import com.github.tomakehurst.wiremock.common.FileSource
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
-import com.github.tomakehurst.wiremock.extension.Parameters
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer
-import com.github.tomakehurst.wiremock.http.Request
-import com.github.tomakehurst.wiremock.http.Response
+import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformerV2
+import com.github.tomakehurst.wiremock.http.ResponseDefinition
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.kotest.assertions.nondeterministic.eventually
-import io.kotest.common.runBlocking
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.engine.runBlocking
 import io.kotest.matchers.string.shouldContain
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.OpenTelemetrySdk
@@ -57,9 +56,11 @@ import kotlin.time.Duration.Companion.hours
 class EventWriteService(
     val domainModel: DomainModel,
 ) {
-    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
+    suspend fun doA(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
+    suspend fun doB(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {
@@ -224,7 +225,8 @@ val config =
 
         override fun repeatScheduleFor(subscriptionName: String): Duration = Duration.ofSeconds(1)
 
-        override fun timeoutFor(subscriptionName: String): Duration = repeatScheduleFor(subscriptionName).multipliedBy(10)
+        override fun timeoutFor(subscriptionName: String): Duration =
+            repeatScheduleFor(subscriptionName).multipliedBy(10)
 
         override fun eagerRetryFor(subscriptionName: String): Boolean = true
 
@@ -232,42 +234,38 @@ val config =
     }
 val httpClient = DefaultAsyncHttpClient()
 
-val configuration =
-    WireMockConfiguration().port(8080).extensions(
-        object : ResponseTransformer() {
-            override fun getName(): String = "producing-events"
+class ProducingEventsTransformer() : ResponseDefinitionTransformerV2 {
 
-            override fun transform(
-                req: Request,
-                res: Response,
-                p2: FileSource?,
-                p3: Parameters?,
-            ): Response {
-                val params =
-                    listOf(
-                        "tags",
-                        "after_timestamp",
-                        "after_offset",
-                        "batch_size",
-                    ).mapNotNull {
-                        try {
-                            it to req.queryParameter(it).values()
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }.toMap()
+    override fun getName(): String = "producing-events"
 
-                return runBlocking {
-                    val result = producer.produceFrom(params)
-                    Response
-                        .response()
-                        .status(200)
-                        .body(result.toString())
-                        .build()
+    override fun transform(p0: ServeEvent): ResponseDefinition {
+        val params =
+            listOf(
+                "tags",
+                "after_timestamp",
+                "after_offset",
+                "batch_size",
+            ).mapNotNull {
+                try {
+                    it to p0.request.queryParameter(it).values()
+                } catch (_: Exception) {
+                    null
                 }
-            }
-        },
-    )
+            }.toMap()
+
+        return runBlocking {
+            val result = producer.produceFrom(params)
+            ResponseDefinitionBuilder()
+                .withStatus(200)
+                .withBody(result.toString())
+                .build()
+        }
+    }
+}
+
+val configuration: WireMockConfiguration =
+    WireMockConfiguration().port(8080)
+        .extensions(ProducingEventsTransformer::class.java)
 
 class OpenTelemetryMetricsTest :
     WordSpec({
