@@ -105,7 +105,8 @@ class BoundedContextHttpEventStreamSource(
         val allTags =
             handlers.keys
                 .map {
-                    targetClassToEventTag[it] ?: throw IllegalArgumentException("Unsupported event type: ${it.qualifiedName}")
+                    targetClassToEventTag[it]
+                        ?: throw IllegalArgumentException("Unsupported event type: ${it.qualifiedName}")
                 }.toSet()
 
         val job =
@@ -229,11 +230,12 @@ class BoundedContextHttpEventStreamSource(
 
         private fun extractEventMetadata(eventJson: JsonObject) =
             EventMetadata(
-                EventId(eventJson["id"].string),
-                AggregateId(eventJson["aggregate_id"].string),
-                CausationId(eventJson["causation_id"].string),
-                eventJson["correlation_id"].nullString?.let { CorrelationId(it) },
-                eventJson["sequence_number"].long,
+                offset = eventJson["offset"].long,
+                eventId = EventId(eventJson["id"].string),
+                aggregateId = AggregateId(eventJson["aggregate_id"].string),
+                causationId = CausationId(eventJson["causation_id"].string),
+                correlationId = eventJson["correlation_id"].nullString?.let { CorrelationId(it) },
+                sequenceNumber = eventJson["sequence_number"].long,
             )
 
         private suspend fun AsyncHttpClient.execute(request: Request): Response =
