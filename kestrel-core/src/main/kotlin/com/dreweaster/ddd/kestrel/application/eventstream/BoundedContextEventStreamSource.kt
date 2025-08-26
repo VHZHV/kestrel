@@ -47,6 +47,7 @@ data class EventStreamSubscriberConfiguration(
 )
 
 data class EventMetadata(
+    val offset: Long,
     val eventId: EventId,
     val aggregateId: AggregateId,
     val causationId: CausationId,
