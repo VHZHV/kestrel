@@ -41,12 +41,12 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.WordSpec
-import io.kotest.engine.runBlocking
 import io.kotest.matchers.string.shouldContain
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.resources.Resource
+import kotlinx.coroutines.runBlocking
 import org.asynchttpclient.DefaultAsyncHttpClient
 import org.asynchttpclient.RequestBuilder
 import java.time.Duration
@@ -56,9 +56,11 @@ import kotlin.time.Duration.Companion.hours
 class EventWriteService(
     val domainModel: DomainModel,
 ) {
-    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
+    suspend fun doA(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
+    suspend fun doB(id: String): CommandHandlingResult<Event> =
+        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {
@@ -223,7 +225,8 @@ val config =
 
         override fun repeatScheduleFor(subscriptionName: String): Duration = Duration.ofSeconds(1)
 
-        override fun timeoutFor(subscriptionName: String): Duration = repeatScheduleFor(subscriptionName).multipliedBy(10)
+        override fun timeoutFor(subscriptionName: String): Duration =
+            repeatScheduleFor(subscriptionName).multipliedBy(10)
 
         override fun eagerRetryFor(subscriptionName: String): Boolean = true
 
