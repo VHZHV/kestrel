@@ -3,7 +3,7 @@ version: v1.0
 name: Publish
 agent:
   machine:
-    type: e1-standard-2
+    type: f1-standard-2
 
 global_job_config:
   prologue:

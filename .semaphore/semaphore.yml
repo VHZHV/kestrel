@@ -3,7 +3,7 @@ version: v1.0
 name: Pipeline
 agent:
   machine:
-    type: e1-standard-2
+    type: f1-standard-2
 
 auto_cancel:
   queued:
@@ -18,7 +18,7 @@ global_job_config:
 
 blocks:
   - name: Test
-    dependencies: []
+    dependencies: [ ]
     task:
       secrets:
         - name: artifacts
