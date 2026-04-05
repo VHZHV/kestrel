@@ -20,21 +20,14 @@ blocks:
   - name: Test
     dependencies: [ ]
     task:
-      secrets:
-        - name: artifacts
       jobs:
         - name: Maven
           commands:
-            - curl -s "https://get.sdkman.io" | bash &
-            - cache restore sdkman-java &
-            - cache restore "maven-${BRANCH_NAME},maven-${MAIN_BRANCH}" &
             - wait
-
-            - source "$HOME/.sdkman/bin/sdkman-init.sh"
-
             - cd "${REPO_NAME}"
-            - sdk env install
-            - gcloud auth activate-service-account --key-file="$(realpath ~/.secrets.artifacts.json)" semaphore@hozah-artifacts.iam.gserviceaccount.com
+
+            - source ./.semaphore/scripts/setup_maven.sh
+            - source ./.semaphore/scripts/service_account_login.sh 'semaphore@hozah-artifacts.iam.gserviceaccount.com'
 
             - ./mvnw --threads=1.5C verify
       epilogue:
@@ -52,7 +45,7 @@ after_pipeline:
     jobs:
       - name: Publish Test Results
         commands:
-          - test-results gen-pipeline-report
+          - test-results gen-pipeline-report || true
 
 promotions:
   - name: Publish
