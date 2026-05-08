@@ -315,8 +315,13 @@ class PostgresBackend(
                             result
                         }
 
-                        is NothingToProcess -> result
-                        is AlreadyProcessed -> result
+                        is NothingToProcess -> {
+                            result
+                        }
+
+                        is AlreadyProcessed -> {
+                            result
+                        }
                     }
                 } catch (ex: Throwable) {
                     Failed(failureCode = "unhandled_exception", ex = ex)

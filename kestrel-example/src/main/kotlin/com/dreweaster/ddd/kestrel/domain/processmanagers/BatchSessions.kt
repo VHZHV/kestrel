@@ -294,8 +294,9 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
 
                 event<ParkingSessionQueued> { cxt, state, evt ->
                     when {
-                        state.isWithinBufferingPeriod(evt.finishedAt) ->
+                        state.isWithinBufferingPeriod(evt.finishedAt) -> {
                             goto(state + QueuedParkingSession(startedAt = evt.startedAt, finishedAt = evt.finishedAt))
+                        }
 
                         else -> {
                             val completedBatchId =
@@ -328,7 +329,9 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
 
                 event<TimedOutCreatingBatch> { _, state, evt ->
                     when {
-                        state.completedBatchId != evt.completedBatchId -> goto(state) // TODO: Is this the correct way to ignore an event?
+                        state.completedBatchId != evt.completedBatchId -> goto(state)
+
+                        // TODO: Is this the correct way to ignore an event?
                         else -> throw Suspend("failed_to_create_batch")
                     }
                 }
@@ -365,7 +368,9 @@ object BatchSessions : ProcessManager<BatchSessionsContext, BatchSessionsEvent, 
                             ).andEmit { BufferingPeriodEnded at state.futureBuffer.bufferingWillCompleteAt }
                         }
 
-                        else -> goto(Finished)
+                        else -> {
+                            goto(Finished)
+                        }
                     }
                 }
             }
@@ -479,8 +484,13 @@ fun main() {
                             domainModel.aggregateRootOf(aggregateType, aggregateId).handleCommand(command)
                     ) {
                         is SuccessResult -> Try.success(Unit)
-                        is RejectionResult -> Try.failure(result.error) // TODO: Probably terminal so suspend the PM
-                        is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException) // TODO: Retry before suspending
+
+                        is RejectionResult -> Try.failure(result.error)
+
+                        // TODO: Probably terminal so suspend the PM
+                        is ConcurrentModificationResult -> Try.failure(OptimisticConcurrencyException)
+
+                        // TODO: Retry before suspending
                         is UnexpectedExceptionResult -> Try.failure(result.ex) // TODO: Retry a few times before suspending
                     }
                 }
