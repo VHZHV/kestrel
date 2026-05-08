@@ -31,18 +31,20 @@ data class HttpJsonEventQuery(
         port: Int,
         path: String,
     ) = when {
-        afterTimestamp != null ->
+        afterTimestamp != null -> {
             URL(
                 "$protocol://$hostname:$port$path?tags=${
                     tags.joinToString(",") { it.value }
                 }&batch_size=$batchSize&after_timestamp=${URLEncoder.encode(instantToUTCString(afterTimestamp), "UTF-8")}",
             )
+        }
 
-        else ->
+        else -> {
             URL(
                 "$protocol://$hostname:$port$path?tags=${
                     tags.joinToString(",") { it.value }
                 }&batch_size=$batchSize&after_offset=${afterOffset ?: -1}",
             )
+        }
     }
 }

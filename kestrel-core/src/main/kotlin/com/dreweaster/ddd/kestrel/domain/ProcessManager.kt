@@ -187,7 +187,9 @@ class ProcessManagerStepBuilder<Result, C : ProcessManagerContext, E : DomainEve
                     SuccessfullyExecutedStep(schedulableCommands, scheduledEvents)
                 }
 
-                else -> UnsuccessfullyExecutedStep(tryResult.cause)
+                else -> {
+                    UnsuccessfullyExecutedStep(tryResult.cause)
+                }
             }
         } else {
             val schedulableCommands =

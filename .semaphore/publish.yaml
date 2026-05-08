@@ -11,14 +11,11 @@ global_job_config:
 
 blocks:
   - name: Publishing
-    dependencies: [ ]
+    dependencies: []
     task:
       jobs:
         - name: Artifacts
           commands:
-            - wait
-            - cd "${REPO_NAME}"
-
             - source ./.semaphore/scripts/setup_maven.sh
             - source ./.semaphore/scripts/service_account_login.sh 'semaphore@hozah-artifacts.iam.gserviceaccount.com'
 

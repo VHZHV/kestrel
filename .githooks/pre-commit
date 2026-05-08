@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CHANGED_FILES="$(git --no-pager diff --name-status --no-color --cached | awk '$1 != "D" { print $NF }')"
+
+
+npx -y prettier -h > /dev/null
+
+./mvnw ktlint:format --quiet &
+
+git ls-files --cached | grep -e '\.yaml$' -e '\.yml$' -e '\.md$' -e '\.json$' | \
+  xargs --max-args=20 --max-procs=8 bash -c 'npx -y prettier --log-level=silent --write $0 $*' &
+
+
+error=0
+for p in $(jobs -p); do wait "$p" || error=1; done
+
+echo "$CHANGED_FILES" | while read -r file; do
+    if [ -f "$file" ]; then
+        git add "$file"
+    fi
+done
+
+exit $error

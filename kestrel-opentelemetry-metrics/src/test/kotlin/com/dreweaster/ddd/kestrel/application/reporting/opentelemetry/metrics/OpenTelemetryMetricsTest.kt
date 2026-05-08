@@ -56,11 +56,9 @@ import kotlin.time.Duration.Companion.hours
 class EventWriteService(
     val domainModel: DomainModel,
 ) {
-    suspend fun doA(id: String): CommandHandlingResult<Event> =
-        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
+    suspend fun doA(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.A)
 
-    suspend fun doB(id: String): CommandHandlingResult<Event> =
-        domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
+    suspend fun doB(id: String): CommandHandlingResult<Event> = domainModel.aggregateRootOf(Cycle, AggregateId(id)).handleCommand(Command.B)
 }
 
 sealed interface Event : DomainEvent {
@@ -225,8 +223,7 @@ val config =
 
         override fun repeatScheduleFor(subscriptionName: String): Duration = Duration.ofSeconds(1)
 
-        override fun timeoutFor(subscriptionName: String): Duration =
-            repeatScheduleFor(subscriptionName).multipliedBy(10)
+        override fun timeoutFor(subscriptionName: String): Duration = repeatScheduleFor(subscriptionName).multipliedBy(10)
 
         override fun eagerRetryFor(subscriptionName: String): Boolean = true
 
