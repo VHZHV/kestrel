@@ -3,11 +3,13 @@
 set -euo pipefail
 
 service_account="$1"
+pool_name_prefix_override="${2:-}"
 
 oidc_token_file='/tmp/oidc_token'
 creds_file='/home/semaphore/creds.json'
 
-pool_name_prefix="$(echo "${service_account}" | cut --delimiter='-' -f2 | cut --delimiter='.' -f1)"
+pool_name_prefix_calculation="$(echo "${service_account}" | cut --delimiter='@' -f2 | cut --delimiter='.' -f1 | sed 's/hozah-//g' | cut -d'-' -f1)"
+pool_name_prefix="${pool_name_prefix_override:-$pool_name_prefix_calculation}"
 
 echo "$SEMAPHORE_OIDC_TOKEN" > "${oidc_token_file}"
 gcloud iam workload-identity-pools create-cred-config \

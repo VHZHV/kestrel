@@ -348,9 +348,15 @@ class MockBackend : InMemoryBackend() {
         correlationId: CorrelationId?,
     ): List<PersistedEvent<E>> =
         when {
-            optimisticConcurrencyExceptionOnSave -> throw OptimisticConcurrencyException
-            saveErrorState -> throw IllegalStateException()
-            else ->
+            optimisticConcurrencyExceptionOnSave -> {
+                throw OptimisticConcurrencyException
+            }
+
+            saveErrorState -> {
+                throw IllegalStateException()
+            }
+
+            else -> {
                 super.saveEvents(
                     aggregateType,
                     aggregateId,
@@ -359,5 +365,6 @@ class MockBackend : InMemoryBackend() {
                     expectedSequenceNumber,
                     correlationId,
                 )
+            }
         }
 }
