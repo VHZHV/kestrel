@@ -3,7 +3,7 @@ version: v1.0
 name: Pipeline
 agent:
   machine:
-    type: f1-standard-2
+    type: r1-standard-2
 
 auto_cancel:
   queued:
@@ -20,6 +20,9 @@ blocks:
   - name: Test
     dependencies: []
     task:
+      agent:
+        machine:
+          type: f1-standard-2
       jobs:
         - name: Maven
           commands:
@@ -40,6 +43,9 @@ blocks:
 
 after_pipeline:
   task:
+    agent:
+      machine:
+        type: r1-standard-2
     jobs:
       - name: Publish Test Results
         commands:
