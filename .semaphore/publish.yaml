@@ -3,7 +3,7 @@ version: v1.0
 name: Publish
 agent:
   machine:
-    type: f1-standard-2
+    type: r1-standard-2
 
 global_job_config:
   prologue:
@@ -13,6 +13,9 @@ blocks:
   - name: Publishing
     dependencies: []
     task:
+      agent:
+        machine:
+          type: f1-standard-2
       jobs:
         - name: Artifacts
           commands:
